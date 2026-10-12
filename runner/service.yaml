@@ -1,0 +1,35 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: cpp-isolated-runner
+  labels:
+    cloud.googleapis.com/location: us-central1
+  annotations:
+    description: "Scale-to-zero isolated C++ execution runner sandbox"
+spec:
+  template:
+    metadata:
+      annotations:
+        # Scale to 0 when idle - completely free when not actively evaluating code
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "2"
+        # Run gVisor sandbox execution environment on Cloud Run
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 4
+      timeoutSeconds: 30
+      containers:
+        - image: gcr.io/PROJECT_ID/cpp-isolated-runner:latest
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+            requests:
+              cpu: "1000m"
+              memory: "512Mi"
+          ports:
+            - name: http1
+              containerPort: 8080
+          env:
+            - name: NODE_ENV
+              value: "production"

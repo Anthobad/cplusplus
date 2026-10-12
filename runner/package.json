@@ -1,0 +1,17 @@
+{
+  "name": "cpp-isolated-runner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Isolated C++ compilation and sandbox test execution microservice",
+  "type": "module",
+  "scripts": {
+    "start": "node --loader tsx server.ts",
+    "dev": "tsx server.ts",
+    "build": "esbuild server.ts --bundle --platform=node --format=cjs --outfile=dist/server.js",
+    "start:prod": "node dist/server.js"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2"
+  }
+}

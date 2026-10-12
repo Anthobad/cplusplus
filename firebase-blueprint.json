@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile & Progress",
+      "description": "Student progress, completed weeks, quiz scores, and personalized metrics.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "studentEmail": { "type": "string" },
+        "currentWeekNumber": { "type": "number" },
+        "completedUnits": { "type": "array" },
+        "unlockedUnits": { "type": "array" },
+        "quizScores": { "type": "object" },
+        "lastActiveDate": { "type": "string" },
+        "streakDays": { "type": "number" }
+      },
+      "required": ["unlockedUnits"]
+    },
+    "ExamAttempt": {
+      "title": "Exam Attempt Record",
+      "description": "Submissions and scores for proctored C++ milestone exams.",
+      "type": "object",
+      "properties": {
+        "examId": { "type": "string" },
+        "score": { "type": "number" },
+        "passed": { "type": "boolean" },
+        "timestamp": { "type": "number" },
+        "tabSwitchWarnings": { "type": "number" }
+      },
+      "required": ["examId", "score", "passed"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User progress data accessible only by the owning authenticated user."
+    },
+    "/users/{userId}/exams/{examAttemptId}": {
+      "schema": "ExamAttempt",
+      "description": "History of exams taken by the user."
+    }
+  }
+}

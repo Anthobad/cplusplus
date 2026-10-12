@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+input, textarea, select {
+  color-scheme: dark;
+}
