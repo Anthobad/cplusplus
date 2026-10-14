@@ -1,4 +1,5 @@
 import type { Exam, ExamQuestionDetail } from '../types';
+import { EXAM_CODING } from './examCoding';
 
 // Correct educational statements without changing grading, sampling or challenge execution.
 const corrections: Record<string, Partial<ExamQuestionDetail>> = {
@@ -104,7 +105,11 @@ function additions(examId: string): ExamQuestionDetail[] {
 
 function corrected(question: ExamQuestionDetail): ExamQuestionDetail {
   const correction = corrections[question.id];
-  return correction ? { ...question, ...correction } : question;
+  const result = correction ? { ...question, ...correction } : question;
+  const coding = EXAM_CODING[question.id];
+  return coding ? { ...result, codingChallengeId: coding.challengeId,
+    codeSnippet: coding.context || coding.initialCode,
+    initialCode: coding.initialCode, codingInstructions: coding.instructions } : result;
 }
 
 export function withAssessmentPools(pools: Record<string, ExamQuestionDetail[]>): Record<string, ExamQuestionDetail[]> {
@@ -124,6 +129,6 @@ export function withAssessmentCorrections(exams: Exam[]): Exam[] {
       'ex4-q4': 'efin-ca-1', 'ex4-q5': 'efin-mcq-2',
     };
     const correction = corrections[aliases[question.id] || question.id];
-    return correction ? { ...question, ...correction } : question;
+    return corrected(correction ? { ...question, ...correction } : question);
   }) }));
 }

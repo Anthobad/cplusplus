@@ -138,8 +138,12 @@ export async function evaluateSubmission(
   try {
     const runner = customRunner || getCodeRunner();
     const evalResult = await runner.evaluate({
-      code: sourceCode,
-      driverCode: trustedDriver,
+      // Exam fragments must never bypass their driver by supplying their own main.
+      // Assemble the trusted context and driver before handing source to any runner.
+      code: registryChallenge?.alwaysUseDriver
+        ? `${registryChallenge.sourcePrefix || ''}\n${sourceCode}\n${trustedDriver || ''}`
+        : sourceCode,
+      driverCode: registryChallenge?.alwaysUseDriver ? undefined : trustedDriver,
       testCases: combinedTests,
       mode,
       wasAssisted: Boolean(wasAssisted),

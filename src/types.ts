@@ -308,6 +308,8 @@ export interface ExamQuestionDetail {
   rubricKeywords?: string[];
   // For coding questions in exams:
   initialCode?: string;
+  codingChallengeId?: string;
+  codingInstructions?: string;
   testCases?: TestCase[];
   driverCode?: string;
 }
@@ -356,6 +358,7 @@ export interface ExamAttempt {
     explanation?: number;
   };
   generatedQuestions?: ExamQuestionDetail[];
+  codingResults?: Record<string, CodeEvaluationResult>;
   completedAt?: string;
   verified?: boolean;
 }
