@@ -1,0 +1,88 @@
+{
+  "url": "https://cplusplus.vercel.app",
+  "errors": [],
+  "status": 200,
+  "result": {
+    "compiled": true,
+    "passed": true,
+    "score": 100,
+    "testsPassed": 5,
+    "totalTests": 5,
+    "testResults": [
+      {
+        "testId": "Test 1",
+        "passed": true,
+        "isHidden": false,
+        "input": "",
+        "expectedOutput": "Hello, modern C++!",
+        "actualOutput": "Hello, modern C++!",
+        "stderr": "",
+        "exitCode": 0,
+        "executionTimeMs": 7.655227000000764
+      },
+      {
+        "testId": "Test 2",
+        "passed": true,
+        "isHidden": false,
+        "input": "run",
+        "expectedOutput": "Hello, modern C++!",
+        "actualOutput": "Hello, modern C++!",
+        "stderr": "",
+        "exitCode": 0,
+        "executionTimeMs": 6.497517999996205
+      },
+      {
+        "testId": "Test 3",
+        "passed": true,
+        "isHidden": false,
+        "input": "test",
+        "expectedOutput": "Hello, modern C++!",
+        "actualOutput": "Hello, modern C++!",
+        "stderr": "",
+        "exitCode": 0,
+        "executionTimeMs": 7.239325000000463
+      },
+      {
+        "testId": "Hidden test 4",
+        "passed": true,
+        "isHidden": true,
+        "actualOutput": "Passed",
+        "executionTimeMs": 6.625241000001836
+      },
+      {
+        "testId": "Hidden test 5",
+        "passed": true,
+        "isHidden": true,
+        "actualOutput": "Passed",
+        "executionTimeMs": 5.65482300000042
+      }
+    ],
+    "mode": "assessment",
+    "wasAssisted": false,
+    "verified": true,
+    "executionTimeMs": 33.67213399999969,
+    "compilationTimeMs": 529.1709010000005
+  },
+  "endToEndMs": 22219.487282000002,
+  "submission": {
+    "challengeId": "cc-t1",
+    "studentCode": "#include <iostream>\nconsteval int cpp20(){return 42;}\nint main(){static_assert(cpp20()==42);std::cout << \"Hello, modern C++!\";}",
+    "mode": "assessment",
+    "wasAssisted": false,
+    "requestAiFeedback": false,
+    "challengeTitle": "Standard Console Output",
+    "expectedBehavior": "Print \"Hello, modern C++!\" to standard output and return 0."
+  },
+  "pageText": "C++ Systems Mastery\n\n10-Phase Systems Engineering & Interview Roadmap\n\nRoadmap\nReadiness\nMock Interview\nASSESSMENT: Standard Console Output\nC++ Library\nAI Locked\nSign In\nCurriculum Roadmap\nTopic Completed\nTake Section Quiz\nTOPIC 1\n•\nDOMAIN 1\nC++ Program Structure & Standards\n\nmain(), #include <iostream>, Compilation Basics & the Zero-Overhead Principle\n\nUNIT OBJECTIVE:\n\nUnderstand how a C++ program is structured, how code executes starting from main(), how std::cout works, and the Zero-Overhead Principle.\n\nBasic Program Structure\nmain() Entry Point\n#include <iostream>\nstd::cout & Semicolons\nCore Theory & Concepts\nSystems Internals & FAQ\nInteractive Exercises (TF & MCQ)\nC++ Coding Challenge\nStandard Console Output\nEasy\nPractice\nAssessment\nSubmit Assessment\nAssessment Mode: Hidden test cases enforced. AI Mentor and solution reveal are locked out. Verified pass required for progression.\n\nPrint \"Hello, modern C++!\" to standard output and return 0.\n\nTest 1: (stdin) → Hello, modern C++!\nTest 2: run → Hello, modern C++!\nTest 3: test → Hello, modern C++!\nVerified Assessment Passed!\n5 / 5 Tests Passed (100%)\nTest 1\nExp: Hello, modern C++!Hello, modern C++!\nTest 2\n[Input: run]\nExp: Hello, modern C++!Hello, modern C++!\nTest 3\n[Input: test]\nExp: Hello, modern C++!Hello, modern C++!\nHidden test 4\nHidden\nPassed\nHidden test 5\nHidden\nPassed\nFirst Topic\nProceed to Next Topic",
+  "success": true,
+  "sandboxes": [
+    {
+      "name": "green-fat-stingray-3xyJyL",
+      "status": "stopped",
+      "createdAt": 1791997988102,
+      "persistent": false
+    }
+  ],
+  "cleanupConfirmed": true,
+  "displayConfirmed": true
+}

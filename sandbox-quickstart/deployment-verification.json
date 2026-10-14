@@ -1,0 +1,295 @@
+{
+  "base": "https://cplusplus.vercel.app",
+  "startedAt": "2026-10-14T17:10:39.126Z",
+  "cases": [
+    {
+      "name": "C++20 success",
+      "status": 200,
+      "body": {
+        "compiled": true,
+        "passed": true,
+        "score": 100,
+        "testsPassed": 5,
+        "totalTests": 5,
+        "testResults": [
+          {
+            "testId": "Test 1",
+            "passed": true,
+            "isHidden": false,
+            "input": "",
+            "expectedOutput": "Hello, modern C++!",
+            "actualOutput": "Hello, modern C++!",
+            "stderr": "",
+            "exitCode": 0,
+            "executionTimeMs": 6.145391000003997
+          },
+          {
+            "testId": "Test 2",
+            "passed": true,
+            "isHidden": false,
+            "input": "run",
+            "expectedOutput": "Hello, modern C++!",
+            "actualOutput": "Hello, modern C++!",
+            "stderr": "",
+            "exitCode": 0,
+            "executionTimeMs": 6.244924999997181
+          },
+          {
+            "testId": "Test 3",
+            "passed": true,
+            "isHidden": false,
+            "input": "test",
+            "expectedOutput": "Hello, modern C++!",
+            "actualOutput": "Hello, modern C++!",
+            "stderr": "",
+            "exitCode": 0,
+            "executionTimeMs": 6.275697999996055
+          },
+          {
+            "testId": "Hidden test 4",
+            "passed": true,
+            "isHidden": true,
+            "actualOutput": "Passed",
+            "executionTimeMs": 7.243613999996512
+          },
+          {
+            "testId": "Hidden test 5",
+            "passed": true,
+            "isHidden": true,
+            "actualOutput": "Passed",
+            "executionTimeMs": 5.40180100000498
+          }
+        ],
+        "mode": "assessment",
+        "wasAssisted": false,
+        "verified": true,
+        "executionTimeMs": 31.311428999998725,
+        "compilationTimeMs": 528.8318349999984
+      },
+      "endToEndMs": 21577.968182,
+      "verifiedCheck": true
+    },
+    {
+      "name": "compilation error",
+      "status": 200,
+      "body": {
+        "compiled": false,
+        "passed": false,
+        "score": 0,
+        "testsPassed": 0,
+        "totalTests": 5,
+        "testResults": [],
+        "mode": "assessment",
+        "wasAssisted": false,
+        "verified": false,
+        "compilationTimeMs": 16.16553200000226,
+        "compileError": "/tmp/cpp-247y8qpp/source.cpp: In function ‘int main()’:\n/tmp/cpp-247y8qpp/source.cpp:1:13: error: ‘invalid’ was not declared in this scope\n    1 | int main(){ invalid syntax; }\n      |             ^~~~~~~\n"
+      },
+      "endToEndMs": 15399.572602000004,
+      "verifiedCheck": true
+    },
+    {
+      "name": "runtime failure",
+      "status": 200,
+      "body": {
+        "compiled": true,
+        "passed": false,
+        "score": 0,
+        "testsPassed": 0,
+        "totalTests": 5,
+        "testResults": [
+          {
+            "testId": "Test 1",
+            "passed": false,
+            "isHidden": false,
+            "input": "",
+            "expectedOutput": "Hello, modern C++!",
+            "actualOutput": "",
+            "stderr": "",
+            "exitCode": 1,
+            "executionTimeMs": 6.261977000001195,
+            "error": "Runtime Error"
+          },
+          {
+            "testId": "Test 2",
+            "passed": false,
+            "isHidden": false,
+            "input": "run",
+            "expectedOutput": "Hello, modern C++!",
+            "actualOutput": "",
+            "stderr": "",
+            "exitCode": 1,
+            "executionTimeMs": 5.999402000000487,
+            "error": "Runtime Error"
+          },
+          {
+            "testId": "Test 3",
+            "passed": false,
+            "isHidden": false,
+            "input": "test",
+            "expectedOutput": "Hello, modern C++!",
+            "actualOutput": "",
+            "stderr": "",
+            "exitCode": 1,
+            "executionTimeMs": 9.75326599999704,
+            "error": "Runtime Error"
+          },
+          {
+            "testId": "Hidden test 4",
+            "passed": false,
+            "isHidden": true,
+            "actualOutput": "Hidden test failed",
+            "error": "Hidden test failed",
+            "executionTimeMs": 5.2415979999977935
+          },
+          {
+            "testId": "Hidden test 5",
+            "passed": false,
+            "isHidden": true,
+            "actualOutput": "Hidden test failed",
+            "error": "Hidden test failed",
+            "executionTimeMs": 5.7848569999947586
+          }
+        ],
+        "mode": "assessment",
+        "wasAssisted": false,
+        "verified": false,
+        "executionTimeMs": 33.041099999991275,
+        "compilationTimeMs": 47.73115399999739
+      },
+      "endToEndMs": 19897.922809000003,
+      "verifiedCheck": true
+    },
+    {
+      "name": "timeout",
+      "status": 200,
+      "body": {
+        "compiled": true,
+        "passed": false,
+        "score": 0,
+        "testsPassed": 0,
+        "totalTests": 5,
+        "testResults": [
+          {
+            "testId": "Test 1",
+            "passed": false,
+            "isHidden": false,
+            "input": "",
+            "expectedOutput": "Hello, modern C++!",
+            "actualOutput": "",
+            "stderr": "",
+            "exitCode": -9,
+            "executionTimeMs": 2514.6228970000025,
+            "error": "Time Limit Exceeded"
+          },
+          {
+            "testId": "Test 2",
+            "passed": false,
+            "isHidden": false,
+            "input": "run",
+            "expectedOutput": "Hello, modern C++!",
+            "actualOutput": "",
+            "stderr": "",
+            "exitCode": -9,
+            "executionTimeMs": 2507.257963000001,
+            "error": "Time Limit Exceeded"
+          },
+          {
+            "testId": "Test 3",
+            "passed": false,
+            "isHidden": false,
+            "input": "test",
+            "expectedOutput": "Hello, modern C++!",
+            "actualOutput": "",
+            "stderr": "",
+            "exitCode": -9,
+            "executionTimeMs": 2510.6460419999976,
+            "error": "Time Limit Exceeded"
+          },
+          {
+            "testId": "Hidden test 4",
+            "passed": false,
+            "isHidden": true,
+            "actualOutput": "Hidden test failed",
+            "error": "Hidden test failed",
+            "executionTimeMs": 2514.820719999996
+          },
+          {
+            "testId": "Hidden test 5",
+            "passed": false,
+            "isHidden": true,
+            "actualOutput": "Hidden test failed",
+            "error": "Hidden test failed",
+            "executionTimeMs": 2506.6032820000005
+          }
+        ],
+        "mode": "assessment",
+        "wasAssisted": false,
+        "verified": false,
+        "executionTimeMs": 12553.950903999998,
+        "compilationTimeMs": 64.34613500000097
+      },
+      "endToEndMs": 31606.55395,
+      "verifiedCheck": true
+    }
+  ],
+  "errors": [],
+  "health": {
+    "status": 200,
+    "body": {
+      "status": "ok",
+      "timestamp": "2026-10-14T17:10:39.729Z"
+    },
+    "endToEndMs": 818.092223
+  },
+  "routing": {
+    "status": 200,
+    "body": {
+      "compiled": false,
+      "passed": false,
+      "score": 0,
+      "testsPassed": 0,
+      "totalTests": 0,
+      "testResults": [],
+      "mode": "assessment",
+      "wasAssisted": false,
+      "verified": false,
+      "configurationError": true,
+      "error": "This challenge is not configured for verified assessment.",
+      "compileError": "This challenge is not configured for verified assessment."
+    },
+    "endToEndMs": 742.3595720000001
+  },
+  "finishedAt": "2026-10-14T17:12:10.109Z",
+  "createdSandboxes": [
+    {
+      "name": "harlequin-exceptional-urial-87C8M9",
+      "status": "stopped",
+      "createdAt": 1791997898496,
+      "persistent": false
+    },
+    {
+      "name": "pink-loud-quelea-qYbMGJ",
+      "status": "stopped",
+      "createdAt": 1791997878628,
+      "persistent": false
+    },
+    {
+      "name": "tan-persistent-cobra-QKqrMW",
+      "status": "stopped",
+      "createdAt": 1791997862941,
+      "persistent": false
+    },
+    {
+      "name": "amaranth-civic-pheasant-u9o69G",
+      "status": "stopped",
+      "createdAt": 1791997841532,
+      "persistent": false
+    }
+  ],
+  "cleanupConfirmed": true,
+  "resolvedVerificationToolErrors": [
+    "Sandbox inventory unavailable: Status code 400 is not ok: Invalid request: `limit` should be <= 50.",
+    "Sandbox cleanup inventory failed: Status code 400 is not ok: Invalid request: `limit` should be <= 50."
+  ]
+}
