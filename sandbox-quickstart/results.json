@@ -1,0 +1,81 @@
+{
+  "compiler": {
+    "stdout": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+    "stderr": "",
+    "exitCode": 0,
+    "signal": null,
+    "executionTimeMs": 9.578256,
+    "error": null
+  },
+  "compilation": {
+    "stdout": "",
+    "stderr": "",
+    "exitCode": 0,
+    "signal": null,
+    "executionTimeMs": 567.273668,
+    "error": null
+  },
+  "tests": [
+    {
+      "input": "2 3\n",
+      "expected": "5\n",
+      "stdout": "5\n",
+      "stderr": "",
+      "exitCode": 0,
+      "signal": null,
+      "executionTimeMs": 3.132223,
+      "error": null,
+      "passed": true
+    },
+    {
+      "input": "10 20\n",
+      "expected": "30\n",
+      "stdout": "30\n",
+      "stderr": "",
+      "exitCode": 0,
+      "signal": null,
+      "executionTimeMs": 1.933913,
+      "error": null,
+      "passed": true
+    },
+    {
+      "input": "-4 9\n",
+      "expected": "5\n",
+      "stdout": "5\n",
+      "stderr": "",
+      "exitCode": 0,
+      "signal": null,
+      "executionTimeMs": 1.787045,
+      "error": null,
+      "passed": true
+    }
+  ],
+  "syntaxError": {
+    "stdout": "",
+    "stderr": "/vercel/syntax-error.cpp: In function ‘int main()’:\n/vercel/syntax-error.cpp:1:14: error: invalid use of ‘this’ in non-member function\n    1 | int main() { this is invalid C++; }\n      |              ^~~~\n",
+    "exitCode": 1,
+    "signal": null,
+    "executionTimeMs": 8.795207,
+    "error": null,
+    "classification": "compilation failure"
+  },
+  "runtimeFailure": {
+    "compilation": {
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0,
+      "signal": null,
+      "executionTimeMs": 35.573541,
+      "error": null
+    },
+    "stdout": "",
+    "stderr": "",
+    "exitCode": 1,
+    "signal": null,
+    "executionTimeMs": 1.406797,
+    "error": null,
+    "classification": "runtime failure"
+  },
+  "totalExecutionTimeMs": 8.259978,
+  "errors": []
+}

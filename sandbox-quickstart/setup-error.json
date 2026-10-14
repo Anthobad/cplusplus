@@ -1,0 +1,25 @@
+{
+  "compiler": {
+    "stdout": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+    "stderr": "",
+    "exitCode": 0,
+    "signal": null,
+    "executionTimeMs": 3.581493,
+    "error": null
+  },
+  "compilation": {
+    "stdout": "",
+    "stderr": "/usr/bin/ld: error while loading shared libraries: libjansson.so.4: cannot open shared object file: No such file or directory\ncollect2: error: ld returned 127 exit status\n",
+    "exitCode": 1,
+    "signal": null,
+    "executionTimeMs": 348.685962,
+    "error": null
+  },
+  "tests": [],
+  "syntaxError": null,
+  "runtimeFailure": null,
+  "totalExecutionTimeMs": 0,
+  "errors": [
+    "Sum program compilation failed"
+  ]
+}
