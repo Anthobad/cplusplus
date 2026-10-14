@@ -1,4 +1,4 @@
-import { RunnerTestCase, Comparator } from "./codeRunner";
+import { RunnerTestCase, Comparator } from "./codeRunner.js";
 
 export interface ServerCodingChallenge {
   id: string;

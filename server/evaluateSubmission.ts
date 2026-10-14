@@ -1,6 +1,6 @@
-import { getCodeRunner, CodeRunner, RunnerResult } from "./codeRunner";
-import { getTrustedChallenge } from "./challengeRegistry";
-import { CodeEvaluationResult } from "../src/types";
+import { getCodeRunner, CodeRunner, RunnerResult } from "./codeRunner.js";
+import { getTrustedChallenge } from "./challengeRegistry.js";
+import { CodeEvaluationResult } from "../src/types.js";
 
 export interface SubmissionPayload {
   challengeId?: string;

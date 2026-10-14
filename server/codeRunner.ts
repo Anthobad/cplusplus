@@ -1,11 +1,11 @@
-import { VercelSandboxCodeRunner } from "./vercelSandboxCodeRunner";
-export { VercelSandboxCodeRunner } from "./vercelSandboxCodeRunner";
+import { VercelSandboxCodeRunner } from "./vercelSandboxCodeRunner.js";
+export { VercelSandboxCodeRunner } from "./vercelSandboxCodeRunner.js";
 import fs from "fs";
 import path from "path";
 import os from "os";
 import { spawn } from "child_process";
 import { gcpMetadata } from "google-auth-library";
-import { TestCase, TestResult, AICodeFeedback } from "../src/types";
+import { TestCase, TestResult, AICodeFeedback } from "../src/types.js";
 
 export type Comparator = "exact" | "trimmed" | "tokens" | "numeric";
 

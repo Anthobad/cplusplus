@@ -1,8 +1,8 @@
 import { Sandbox } from '@vercel/sandbox';
 import { Readable } from 'node:stream';
-import type { CodeRunner, RunnerRequest, RunnerResult } from './codeRunner';
-import { compareOutputs } from './codeRunner';
-import { supervisorSource } from './sandbox/supervisor';
+import type { CodeRunner, RunnerRequest, RunnerResult } from './codeRunner.js';
+import { compareOutputs } from './codeRunner.js';
+import { supervisorSource } from './sandbox/supervisor.js';
 
 export const SANDBOX_LIMITS = {
   sourceBytes: 128 * 1024, inputBytes: 64 * 1024, tests: 32,

@@ -2,10 +2,10 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
-import { getCodeRunner } from "./server/codeRunner";
-import { getTrustedChallenge } from "./server/challengeRegistry";
-import { evaluateSubmission } from "./server/evaluateSubmission";
-import { AICodeFeedback } from "./src/types";
+import { getCodeRunner } from "./server/codeRunner.js";
+import { getTrustedChallenge } from "./server/challengeRegistry.js";
+import { evaluateSubmission } from "./server/evaluateSubmission.js";
+import { AICodeFeedback } from "./src/types.js";
 
 dotenv.config();
 
@@ -540,7 +540,7 @@ async function startServer() {
     // Development convenience: start local sandbox runner daemon on loopback port if unconfigured
     if (!process.env.ISOLATED_RUNNER_ENDPOINT) {
       try {
-        const { createRunnerServer } = await import("./runner/server");
+        const { createRunnerServer } = await import("./runner/server.js");
         const runnerServer = createRunnerServer();
         runnerServer.on("error", (err: any) => {
           if (err.code === "EADDRINUSE") {
