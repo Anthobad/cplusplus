@@ -1,3 +1,5 @@
+import { VercelSandboxCodeRunner } from "./vercelSandboxCodeRunner";
+export { VercelSandboxCodeRunner } from "./vercelSandboxCodeRunner";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -30,6 +32,7 @@ export interface RunnerResult {
   compileError?: string;
   runtimeError?: string;
   executionTimeMs?: number;
+  compilationTimeMs?: number;
   testsPassed: number;
   totalTests: number;
   testResults: TestResult[];
@@ -1187,14 +1190,21 @@ int main() {
 }
 
 /**
- * Factory for obtaining the active CodeRunner based on environment configuration.
- * - In production with external Cloud Run endpoint: uses IsolatedProductionRunner.
- * - In production without external runner: delegates to WandboxCodeRunner (zero-cost, no billing).
- * - Production NEVER falls back to localhost execution.
+ * Server-only provider selection. Vercel defaults to fresh Sandbox execution;
+ * Google production retains its isolated endpoint/Wandbox default.
+ * Explicit alternatives are selected before execution, never after a failure.
  */
 export function getCodeRunner(): CodeRunner {
   const isProd = process.env.NODE_ENV === "production";
   const mode = process.env.CODE_RUNNER_MODE;
+  if (mode && !["local", "production", "wandbox", "isolated", "vercel-sandbox"].includes(mode)) {
+    throw new Error("Unsupported CODE_RUNNER_MODE");
+  }
+  if (mode === "vercel-sandbox" || (process.env.VERCEL === "1" && (!mode || mode === "production" || mode === "local"))) {
+    return new VercelSandboxCodeRunner();
+  }
+  if (mode === "wandbox") return new WandboxCodeRunner();
+  if (mode === "isolated") return new IsolatedProductionRunner();
   const isolatedEndpoint = process.env.ISOLATED_RUNNER_ENDPOINT;
   const hasIsolatedEndpoint = Boolean(
     isolatedEndpoint &&
@@ -1213,15 +1223,6 @@ export function getCodeRunner(): CodeRunner {
     return new WandboxCodeRunner();
   }
 
-  // 3. Explicit dev opt-ins:
-  if (mode === "wandbox") {
-    return new WandboxCodeRunner();
-  }
-
-  if (mode === "isolated") {
-    return new IsolatedProductionRunner();
-  }
-
-  // 4. Local development runner
+  // Local development runner
   return new LocalCodeRunner();
 }

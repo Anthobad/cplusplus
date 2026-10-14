@@ -141,10 +141,12 @@ The curriculum has been reorganized into four structured Knowledge Domains match
 
 ### Real Compiler & Test Execution Engine
 1. **Runner Architecture & Safety**:
-   - Production code execution is designed to use an isolated runner (`IsolatedProductionRunner`).
+   - Vercel production uses `VercelSandboxCodeRunner`, creating an isolated ephemeral microVM for every submission.
+   - Google production retains `IsolatedProductionRunner` when an external endpoint is configured, otherwise Wandbox.
    - Local development may use `LocalCodeRunner`, which executes code on the development host using `g++` and must not be used for untrusted public submissions.
-   - When running in production (`NODE_ENV=production`), if no isolated sandbox endpoint is configured via `ISOLATED_RUNNER_ENDPOINT`, the server fails safely and refuses to execute arbitrary C++ on the main host.
-   - You can explicitly select the runner mode using the `CODE_RUNNER_MODE` environment variable (`local` vs `production`).
+   - Production never runs student C++ on the application host, and never changes providers after an execution failure.
+   - Select a provider with the server-only `CODE_RUNNER_MODE`: `vercel-sandbox`, `wandbox`, or `isolated`; `local` is restricted to development.
+   - Vercel configuration, compiler provisioning, limits, validation, and deployment requirements are documented in [docs/vercel-sandbox-integration.md](docs/vercel-sandbox-integration.md).
 2. **Execution & Resource Limits**:
    - Compiles with modern flags (`-O2 -std=c++20 -Wall -Wextra`).
    - Process bounds include execution timeout (2500ms max) and stdout/stderr output caps (64 KB max).

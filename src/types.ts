@@ -76,6 +76,8 @@ export interface TestCase {
 }
 
 export interface TestResult {
+  stderr?: string;
+  exitCode?: number;
   testId?: string;
   passed: boolean;
   input?: string;
@@ -108,6 +110,7 @@ export interface CodeSubmissionRequest {
 }
 
 export interface CodeEvaluationResult {
+  compilationTimeMs?: number;
   compiled: boolean;
   passed: boolean;
   score: number; // 0 - 100

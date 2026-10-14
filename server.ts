@@ -1,12 +1,10 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { getCodeRunner } from "./server/codeRunner";
 import { getTrustedChallenge } from "./server/challengeRegistry";
 import { evaluateSubmission } from "./server/evaluateSubmission";
-import { createRunnerServer } from "./runner/server";
 import { AICodeFeedback } from "./src/types";
 
 dotenv.config();
@@ -542,6 +540,7 @@ async function startServer() {
     // Development convenience: start local sandbox runner daemon on loopback port if unconfigured
     if (!process.env.ISOLATED_RUNNER_ENDPOINT) {
       try {
+        const { createRunnerServer } = await import("./runner/server");
         const runnerServer = createRunnerServer();
         runnerServer.on("error", (err: any) => {
           if (err.code === "EADDRINUSE") {
@@ -573,6 +572,7 @@ async function startServer() {
   }
 
   if (!isProduction) {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -591,4 +591,7 @@ async function startServer() {
   });
 }
 
-startServer();
+export default app;
+
+// Vercel imports the Express handler without starting listeners or a local compiler daemon.
+if (process.env.VERCEL !== "1") void startServer();
