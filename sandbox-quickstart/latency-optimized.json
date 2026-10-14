@@ -1,0 +1,171 @@
+{
+  "location": "local trusted evaluator with real Vercel Sandbox, not deployed API",
+  "records": [
+    {
+      "label": "first-snapshot-restore",
+      "endToEndMs": 6301.324138,
+      "timing": {
+        "phases": {
+          "sandboxCreation": 1907.9101999999998,
+          "commandStart": 296.0248849999998,
+          "sourceUpload": 1579.8360869999997,
+          "supervisorWait": 934.6945180000002,
+          "resultFetch": 251.0869329999996,
+          "cleanup": 1330.5629360000003
+        },
+        "sdkCalls": 7,
+        "snapshotHit": true,
+        "totalMs": 6300.631244,
+        "compilationMs": 872.3576500000014,
+        "executionMs": 39.8915130000006
+      },
+      "response": {
+        "status": 200,
+        "result": {
+          "compiled": true,
+          "passed": true,
+          "score": 100,
+          "testsPassed": 5,
+          "totalTests": 5,
+          "testResults": [
+            {
+              "testId": "Test 1",
+              "passed": true,
+              "isHidden": false,
+              "input": "",
+              "expectedOutput": "Hello, modern C++!",
+              "actualOutput": "Hello, modern C++!",
+              "stderr": "",
+              "exitCode": 0,
+              "executionTimeMs": 11.683097000002363
+            },
+            {
+              "testId": "Test 2",
+              "passed": true,
+              "isHidden": false,
+              "input": "run",
+              "expectedOutput": "Hello, modern C++!",
+              "actualOutput": "Hello, modern C++!",
+              "stderr": "",
+              "exitCode": 0,
+              "executionTimeMs": 9.226192999999938
+            },
+            {
+              "testId": "Test 3",
+              "passed": true,
+              "isHidden": false,
+              "input": "test",
+              "expectedOutput": "Hello, modern C++!",
+              "actualOutput": "Hello, modern C++!",
+              "stderr": "",
+              "exitCode": 0,
+              "executionTimeMs": 6.29329599999906
+            },
+            {
+              "testId": "Hidden test 4",
+              "passed": true,
+              "isHidden": true,
+              "actualOutput": "Passed",
+              "executionTimeMs": 6.935534000000132
+            },
+            {
+              "testId": "Hidden test 5",
+              "passed": true,
+              "isHidden": true,
+              "actualOutput": "Passed",
+              "executionTimeMs": 5.753392999999107
+            }
+          ],
+          "mode": "assessment",
+          "wasAssisted": false,
+          "verified": true,
+          "executionTimeMs": 39.8915130000006,
+          "compilationTimeMs": 872.3576500000014
+        }
+      }
+    },
+    {
+      "label": "warm-snapshot-restore",
+      "endToEndMs": 4693.078674000001,
+      "timing": {
+        "phases": {
+          "sandboxCreation": 1122.1984700000003,
+          "commandStart": 262.7565050000012,
+          "sourceUpload": 806.4045780000015,
+          "supervisorWait": 797.8193110000011,
+          "resultFetch": 403.7455919999993,
+          "cleanup": 1299.2164900000007
+        },
+        "sdkCalls": 7,
+        "snapshotHit": true,
+        "totalMs": 4692.590046,
+        "compilationMs": 754.8239629999998,
+        "executionMs": 35.243201000003666
+      },
+      "response": {
+        "status": 200,
+        "result": {
+          "compiled": true,
+          "passed": true,
+          "score": 100,
+          "testsPassed": 5,
+          "totalTests": 5,
+          "testResults": [
+            {
+              "testId": "Test 1",
+              "passed": true,
+              "isHidden": false,
+              "input": "",
+              "expectedOutput": "Hello, modern C++!",
+              "actualOutput": "Hello, modern C++!",
+              "stderr": "",
+              "exitCode": 0,
+              "executionTimeMs": 9.364181000002247
+            },
+            {
+              "testId": "Test 2",
+              "passed": true,
+              "isHidden": false,
+              "input": "run",
+              "expectedOutput": "Hello, modern C++!",
+              "actualOutput": "Hello, modern C++!",
+              "stderr": "",
+              "exitCode": 0,
+              "executionTimeMs": 6.451318999999955
+            },
+            {
+              "testId": "Test 3",
+              "passed": true,
+              "isHidden": false,
+              "input": "test",
+              "expectedOutput": "Hello, modern C++!",
+              "actualOutput": "Hello, modern C++!",
+              "stderr": "",
+              "exitCode": 0,
+              "executionTimeMs": 6.591264000000763
+            },
+            {
+              "testId": "Hidden test 4",
+              "passed": true,
+              "isHidden": true,
+              "actualOutput": "Passed",
+              "executionTimeMs": 6.451039000001657
+            },
+            {
+              "testId": "Hidden test 5",
+              "passed": true,
+              "isHidden": true,
+              "actualOutput": "Passed",
+              "executionTimeMs": 6.385397999999043
+            }
+          ],
+          "mode": "assessment",
+          "wasAssisted": false,
+          "verified": true,
+          "executionTimeMs": 35.243201000003666,
+          "compilationTimeMs": 754.8239629999998
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "location": "local frontend with real Vercel Sandbox execution; NOT production",
+  "results": [
+    {
+      "label": "first-frontend-submission",
+      "clickToDisplayedResultMs": 4932.803309999999,
+      "status": 200,
+      "verified": true,
+      "testsPassed": 5
+    },
+    {
+      "label": "warm-frontend-submission",
+      "clickToDisplayedResultMs": 4374.601909,
+      "status": 200,
+      "verified": true,
+      "testsPassed": 5
+    }
+  ]
+}

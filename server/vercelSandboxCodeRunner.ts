@@ -1,31 +1,25 @@
 import { Sandbox } from '@vercel/sandbox';
-import { Readable } from 'node:stream';
 import type { CodeRunner, RunnerRequest, RunnerResult } from './codeRunner.js';
 import { compareOutputs } from './codeRunner.js';
-import { supervisorSource } from './sandbox/supervisor.js';
+import { compilerVersion, environmentFiles, provisionCommand, provisioningPolicy, setupCommand, snapshotMaxAgeMs } from './sandbox/compilerEnvironment.js';
+import { compilerSnapshot } from './sandbox/compilerSnapshot.js';
+export { provisionCommand } from './sandbox/compilerEnvironment.js';
 
 export const SANDBOX_LIMITS = {
-  sourceBytes: 128 * 1024, inputBytes: 64 * 1024, tests: 32,
-  outputBytes: 64 * 1024, compileMs: 8000, executionMs: 2500,
+  sourceBytes: 128 * 1024, inputBytes: 64 * 1024, totalInputBytes: 256 * 1024, tests: 32,
+  outputBytes: 64 * 1024, totalOutputBytes: 256 * 1024, compileMs: 8000, executionMs: 2500,
   provisionMs: 90000, lifetimeMs: 200000,
   compileMemoryBytes: 1024 * 1024 * 1024, executionMemoryBytes: 256 * 1024 * 1024,
 } as const;
 
-// Only trusted Ubuntu repositories can be contacted during setup. No submission is uploaded yet.
-export const provisioningPolicy = { allow: ['archive.ubuntu.com', 'security.ubuntu.com'] };
-export const provisionCommand = `set -eu
-sed -i 's|http://|https://|g' /etc/apt/sources.list.d/ubuntu.sources
-export DEBIAN_FRONTEND=noninteractive
-apt-get -o Acquire::Retries=1 -o Acquire::https::Timeout=15 update
-apt-get -o Acquire::Retries=1 -o Acquire::https::Timeout=15 install -y --no-install-recommends g++-15 binutils libjansson4 python3 procps
-ln -sf /usr/bin/g++-15 /usr/local/bin/g++
-g++ --version
-ld --version
-install -d -m 700 /opt/cpp-runner`;
-
 export interface ProcessOutcome {
   stdout: string; stderr: string; exitCode: number;
   executionTimeMs: number; timedOut: boolean; outputLimited: boolean;
+}
+
+export interface RunnerTiming {
+  phases: Record<string, number>; sdkCalls: number; snapshotHit: boolean;
+  recovery?: string; totalMs: number; compilationMs?: number; executionMs?: number;
 }
 
 // Dependency injection keeps orchestration tests independent of Vercel credentials.
@@ -44,7 +38,10 @@ function validateOutcome(data: unknown): ProcessOutcome {
 }
 
 export class VercelSandboxCodeRunner implements CodeRunner {
-  constructor(private readonly createSandbox: CreateSandbox = options => Sandbox.create(options)) {}
+  constructor(
+    private readonly createSandbox: CreateSandbox = options => Sandbox.create(options),
+    private readonly options: { snapshot?: typeof compilerSnapshot; onTiming?: (timing: RunnerTiming) => void } = {},
+  ) {}
 
   async evaluate(request: RunnerRequest): Promise<RunnerResult> {
     const base: RunnerResult = {
@@ -62,57 +59,72 @@ export class VercelSandboxCodeRunner implements CodeRunner {
     if (!request.code.trim() || Buffer.byteLength(source) > SANDBOX_LIMITS.sourceBytes) {
       return { ...base, compileError: 'Source code is empty or exceeds the 128 KiB limit.' };
     }
-    if (request.testCases.length > SANDBOX_LIMITS.tests || request.testCases.some(t => Buffer.byteLength(t.input || '') > SANDBOX_LIMITS.inputBytes)) {
+    if (request.testCases.length > SANDBOX_LIMITS.tests || request.testCases.some(t => Buffer.byteLength(t.input || '') > SANDBOX_LIMITS.inputBytes) || request.testCases.reduce((bytes, t) => bytes + Buffer.byteLength(t.input || ''), 0) > SANDBOX_LIMITS.totalInputBytes) {
       return { ...base, configurationError: true, error: 'Test configuration exceeds runner limits.' };
     }
     const timeoutMs = Math.min(SANDBOX_LIMITS.executionMs, Math.max(1, request.timeoutMs || SANDBOX_LIMITS.executionMs));
-    const sandbox = await this.createSandbox({
-      image: 'vercel/sandbox/ubuntu:latest', persistent: false,
-      networkPolicy: provisioningPolicy, resources: { vcpus: 1 },
-      timeout: SANDBOX_LIMITS.lifetimeMs,
-      signal: AbortSignal.timeout(30000),
-      // Deliberately no name, mounts, repository, credentials, or caller environment.
-    });
+    const started = performance.now();
+    const timing: RunnerTiming = { phases: {}, sdkCalls: 0, snapshotHit: false, recovery: undefined, totalMs: 0 };
+    const timed = async <T>(phase: string, operation: () => Promise<T>): Promise<T> => {
+      const t = performance.now();
+      timing.sdkCalls++;
+      try { return await operation(); }
+      finally { timing.phases[phase] = (timing.phases[phase] || 0) + performance.now() - t; }
+    };
+    const configured = this.options.snapshot === undefined ? compilerSnapshot : this.options.snapshot;
+    const candidate = configured && configured.version === compilerVersion && Date.now() - configured.createdAt < snapshotMaxAgeMs ? configured : null;
+    const common = { persistent: false, resources: { vcpus: 1 }, timeout: SANDBOX_LIMITS.lifetimeMs, signal: AbortSignal.timeout(30000) };
+    let sandbox: SandboxClient | undefined;
     try {
-      const provision = await sandbox.runCommand({
-        cmd: 'sudo', args: ['timeout', '--kill-after=2s', `${SANDBOX_LIMITS.provisionMs / 1000}s`, 'sh', '-c', provisionCommand],
-        signal: AbortSignal.timeout(SANDBOX_LIMITS.provisionMs + 5000),
-      });
-      if (provision.exitCode !== 0) throw new Error('Sandbox compiler provisioning failed');
-      await sandbox.update({ networkPolicy: 'deny-all' });
-      await sandbox.writeFiles([
-        { path: '/vercel/supervisor.py', content: Buffer.from(supervisorSource) },
-        { path: '/vercel/source.cpp', content: Buffer.from(source) },
-      ]);
-      const protect = await sandbox.runCommand('sudo', ['sh', '-c', 'mv /vercel/supervisor.py /opt/cpp-runner/supervisor.py && mv /vercel/source.cpp /opt/cpp-runner/source.cpp && chown -R root:root /opt/cpp-runner && chmod -R go-rwx /opt/cpp-runner']);
-      if (protect.exitCode !== 0) throw new Error('Sandbox supervisor setup failed');
-
-      const execute = async (phase: 'compile' | 'run', index = 0, input = '') => {
-        const compile = phase === 'compile';
-        const processResult = await sandbox.runCommand({
-          cmd: 'sudo', args: ['python3', '/opt/cpp-runner/supervisor.py'],
-          stdin: Readable.from([JSON.stringify({ phase, index, input,
-            timeoutMs: compile ? SANDBOX_LIMITS.compileMs : timeoutMs,
-            outputBytes: SANDBOX_LIMITS.outputBytes,
-            memoryBytes: compile ? SANDBOX_LIMITS.compileMemoryBytes : SANDBOX_LIMITS.executionMemoryBytes,
-          })]),
-          signal: AbortSignal.timeout((compile ? SANDBOX_LIMITS.compileMs : timeoutMs) + 10000),
-        });
-        if (processResult.exitCode !== 0) throw new Error('Sandbox supervisor failed');
-        const report = await sandbox.runCommand('sudo', ['cat', '/opt/cpp-runner/result.json']);
-        if (report.exitCode !== 0) throw new Error('Sandbox result unavailable');
-        return validateOutcome(JSON.parse(await report.stdout()));
-      };
-      const compilation = await execute('compile');
+      if (candidate) {
+        try {
+          sandbox = await timed('sandboxCreation', () => this.createSandbox({ ...common, source: { type: 'snapshot', snapshotId: candidate.snapshotId }, networkPolicy: 'deny-all' }));
+          timing.snapshotHit = true;
+        } catch (error) {
+          // Only a missing/expired snapshot permits rebuilding this SAME provider's environment.
+          // Auth, quota, network and execution failures never trigger retries or failover.
+          const code = (error as { json?: { error?: { code?: string } } }).json?.error?.code;
+          if (!['snapshot_not_found', 'snapshot_expired'].includes(code || '')) throw error;
+          timing.recovery = code;
+        }
+      } else timing.recovery = configured ? 'snapshot_version_or_age_mismatch' : 'snapshot_not_configured';
+      if (!sandbox) {
+        sandbox = await timed('sandboxCreation', () => this.createSandbox({ ...common, image: 'vercel/sandbox/ubuntu:latest', networkPolicy: provisioningPolicy }));
+        const provision = await timed('aptProvisioning', () => sandbox!.runCommand({
+          cmd: 'sudo', args: ['timeout', '--kill-after=2s', `${SANDBOX_LIMITS.provisionMs / 1000}s`, 'sh', '-c', provisionCommand],
+          signal: AbortSignal.timeout(SANDBOX_LIMITS.provisionMs + 5000),
+        }));
+        if (provision.exitCode !== 0) throw new Error('Sandbox compiler provisioning failed');
+        await timed('networkLockdown', () => sandbox!.update({ networkPolicy: 'deny-all' }));
+        await timed('infrastructureUpload', () => sandbox!.writeFiles(environmentFiles()));
+        const protect = await timed('supervisorSetup', () => sandbox!.runCommand('sudo', ['sh', '-c', setupCommand]));
+        if (protect.exitCode !== 0) throw new Error('Sandbox supervisor setup failed');
+      }
+      const batch = JSON.stringify({ version: compilerVersion, source, inputs: request.testCases.map(t => t.input || ''),
+        limits: { ...SANDBOX_LIMITS, executionMs: timeoutMs } });
+      const command = await timed('commandStart', () => sandbox!.runCommand({
+        cmd: 'sudo', args: ['python3', '/opt/cpp-runner/supervisor.py'], stdin: true, detached: true,
+        signal: AbortSignal.timeout(10000),
+      }));
+      await timed('sourceUpload', () => command.writeStdin(batch, { abortSignal: AbortSignal.timeout(10000) }));
+      await timed('sourceUpload', () => command.closeStdin({ abortSignal: AbortSignal.timeout(10000) }));
+      const processResult = await timed('supervisorWait', () => command.wait({ signal: AbortSignal.timeout(SANDBOX_LIMITS.compileMs + timeoutMs * request.testCases.length + 10000) }));
+      if (processResult.exitCode !== 0) throw new Error('Sandbox supervisor failed');
+      const raw = await timed('resultFetch', () => processResult.stdout());
+      const decoded = JSON.parse(raw);
+      const compilation = validateOutcome(decoded.compilation);
+      timing.compilationMs = compilation.executionTimeMs;
       if (compilation.timedOut || compilation.outputLimited || compilation.exitCode !== 0) {
         return { ...base, compilationTimeMs: compilation.executionTimeMs,
           compileError: compilation.timedOut ? 'Compilation Time Limit Exceeded' : compilation.outputLimited ? 'Compiler Output Limit Exceeded' : compilation.stderr || 'Compilation failed.' };
       }
+      if (!Array.isArray(decoded.tests) || decoded.tests.length !== request.testCases.length) throw new Error('Invalid sandbox test count');
+      const outcomes = decoded.tests.map(validateOutcome);
       const testResults = [];
       let testsPassed = 0;
       let executionTimeMs = 0;
       for (const [index, test] of request.testCases.entries()) {
-        const outcome = await execute('run', index, test.input || '');
+        const outcome = outcomes[index];
         executionTimeMs += outcome.executionTimeMs;
         const error = outcome.timedOut ? 'Time Limit Exceeded' : outcome.outputLimited ? 'Output Limit Exceeded' : outcome.exitCode !== 0 ? 'Runtime Error' : undefined;
         const passed = !error && compareOutputs(outcome.stdout, test.expectedOutput, test.comparator || request.comparator);
@@ -129,12 +141,19 @@ export class VercelSandboxCodeRunner implements CodeRunner {
           error: passed ? undefined : test.isHidden ? 'Hidden test failed' : error || 'Output mismatch',
         });
       }
+      timing.executionMs = executionTimeMs;
       const passed = testsPassed === request.testCases.length;
       return { ...base, compiled: true, passed, score: Math.round(testsPassed / request.testCases.length * 100),
         testsPassed, testResults, executionTimeMs, compilationTimeMs: compilation.executionTimeMs,
         verified: false }; // Only evaluateSubmission can grant verified progress.
     } finally {
-      await sandbox.stop();
+      try { if (sandbox) await timed('cleanup', () => sandbox!.stop()); }
+      finally {
+        timing.totalMs = performance.now() - started;
+        // Operational metrics contain no code, stdin, answers, user identifiers or credentials.
+        if (this.options.onTiming) this.options.onTiming(timing);
+        else console.info(JSON.stringify({ event: 'cpp_runner_timing', ...timing }));
+      }
     }
   }
 }

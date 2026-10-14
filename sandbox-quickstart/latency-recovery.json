@@ -1,0 +1,86 @@
+{
+  "timing": {
+    "phases": {
+      "sandboxCreation": 993.2870019999999,
+      "aptProvisioning": 20444.037948999998,
+      "networkLockdown": 1097.5712289999974,
+      "infrastructureUpload": 812.7310039999975,
+      "supervisorSetup": 433.62627000000066,
+      "commandStart": 296.7319949999983,
+      "sourceUpload": 1009.3183650000028,
+      "supervisorWait": 1089.927725999998,
+      "resultFetch": 264.79082500000004,
+      "cleanup": 1338.6861119999994
+    },
+    "sdkCalls": 11,
+    "snapshotHit": false,
+    "recovery": "snapshot_not_configured",
+    "totalMs": 27781.791696,
+    "compilationMs": 834.8219169999993,
+    "executionMs": 54.774185999988845
+  },
+  "response": {
+    "status": 200,
+    "result": {
+      "compiled": true,
+      "passed": true,
+      "score": 100,
+      "testsPassed": 5,
+      "totalTests": 5,
+      "testResults": [
+        {
+          "testId": "Test 1",
+          "passed": true,
+          "isHidden": false,
+          "input": "",
+          "expectedOutput": "Hello, modern C++!",
+          "actualOutput": "Hello, modern C++!",
+          "stderr": "",
+          "exitCode": 0,
+          "executionTimeMs": 21.726402999995287
+        },
+        {
+          "testId": "Test 2",
+          "passed": true,
+          "isHidden": false,
+          "input": "run",
+          "expectedOutput": "Hello, modern C++!",
+          "actualOutput": "Hello, modern C++!",
+          "stderr": "",
+          "exitCode": 0,
+          "executionTimeMs": 10.131700999998827
+        },
+        {
+          "testId": "Test 3",
+          "passed": true,
+          "isHidden": false,
+          "input": "test",
+          "expectedOutput": "Hello, modern C++!",
+          "actualOutput": "Hello, modern C++!",
+          "stderr": "",
+          "exitCode": 0,
+          "executionTimeMs": 7.3184889999993175
+        },
+        {
+          "testId": "Hidden test 4",
+          "passed": true,
+          "isHidden": true,
+          "actualOutput": "Passed",
+          "executionTimeMs": 8.358100999998896
+        },
+        {
+          "testId": "Hidden test 5",
+          "passed": true,
+          "isHidden": true,
+          "actualOutput": "Passed",
+          "executionTimeMs": 7.239491999996517
+        }
+      ],
+      "mode": "assessment",
+      "wasAssisted": false,
+      "verified": true,
+      "executionTimeMs": 54.774185999988845,
+      "compilationTimeMs": 834.8219169999993
+    }
+  }
+}

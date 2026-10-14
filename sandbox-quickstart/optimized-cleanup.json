@@ -1,0 +1,90 @@
+{
+  "snapshot": {
+    "id": "snap_PiJE6TrpH8ETXKyny2P9kVpCHuPj",
+    "status": "created",
+    "sizeBytes": 191410229
+  },
+  "activeSandboxes": [],
+  "latestSandboxes": [
+    {
+      "name": "emerald-good-macaw-pXi9Vo",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "plum-eastern-bandicoot-pf3bEB",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "indigo-testy-zebra-Z62wvJ",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "apricot-professional-manatee-v2r5qY",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "plum-friendly-pinniped-2i6Dv6",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "rose-wonderful-starfish-mDu1hf",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "maroon-realistic-mole-epvPGN",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "pink-helpful-rook-6uJ35d",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "white-liable-horse-mdDsRB",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "tomato-scared-meerkat-vSP9hW",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "jade-xerothermic-firefly-AeaK1b",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "yellow-jolly-gibbon-3yxACw",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "yellow-melodic-worm-ywmpGP",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "green-straightforward-possum-AtMMss",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "crimson-straight-roadrunner-76HB4M",
+      "status": "stopped",
+      "persistent": false
+    },
+    {
+      "name": "amaranth-broad-pony-mriJbK",
+      "status": "stopped",
+      "persistent": false
+    }
+  ]
+}

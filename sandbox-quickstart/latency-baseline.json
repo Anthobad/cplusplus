@@ -1,0 +1,155 @@
+{
+  "calls": [
+    {
+      "phase": "sandboxCreation",
+      "elapsedMs": 1547.0196570000003
+    },
+    {
+      "phase": "aptProvisioning",
+      "elapsedMs": 18221.121455,
+      "remoteDurationMs": 17716
+    },
+    {
+      "phase": "networkLockdown",
+      "elapsedMs": 1099.5138220000008
+    },
+    {
+      "phase": "sourceUpload",
+      "elapsedMs": 258.7777109999988
+    },
+    {
+      "phase": "supervisorSetup",
+      "elapsedMs": 300.6905310000002,
+      "remoteDurationMs": 34
+    },
+    {
+      "phase": "compileOrTest",
+      "elapsedMs": 2022.015402000001,
+      "remoteDurationMs": 1701
+    },
+    {
+      "phase": "resultFetch",
+      "elapsedMs": 246.6603950000026,
+      "remoteDurationMs": 15
+    },
+    {
+      "phase": "compileOrTest",
+      "elapsedMs": 1202.3252219999995,
+      "remoteDurationMs": 943
+    },
+    {
+      "phase": "resultFetch",
+      "elapsedMs": 324.55665000000226,
+      "remoteDurationMs": 12
+    },
+    {
+      "phase": "compileOrTest",
+      "elapsedMs": 1192.5841959999998,
+      "remoteDurationMs": 935
+    },
+    {
+      "phase": "resultFetch",
+      "elapsedMs": 288.1025039999986,
+      "remoteDurationMs": 13
+    },
+    {
+      "phase": "compileOrTest",
+      "elapsedMs": 1088.2085359999983,
+      "remoteDurationMs": 825
+    },
+    {
+      "phase": "resultFetch",
+      "elapsedMs": 372.7891150000032,
+      "remoteDurationMs": 12
+    },
+    {
+      "phase": "compileOrTest",
+      "elapsedMs": 1361.8329460000023,
+      "remoteDurationMs": 1117
+    },
+    {
+      "phase": "resultFetch",
+      "elapsedMs": 356.1479040000013,
+      "remoteDurationMs": 13
+    },
+    {
+      "phase": "compileOrTest",
+      "elapsedMs": 1232.6959920000008,
+      "remoteDurationMs": 765
+    },
+    {
+      "phase": "resultFetch",
+      "elapsedMs": 270.03242399999726,
+      "remoteDurationMs": 18
+    },
+    {
+      "phase": "cleanup",
+      "elapsedMs": 1304.5008280000002
+    }
+  ],
+  "endToEndMs": 32692.823487999998,
+  "response": {
+    "status": 200,
+    "result": {
+      "compiled": true,
+      "passed": true,
+      "score": 100,
+      "testsPassed": 5,
+      "totalTests": 5,
+      "testResults": [
+        {
+          "testId": "Test 1",
+          "passed": true,
+          "isHidden": false,
+          "input": "",
+          "expectedOutput": "Hello, modern C++!",
+          "actualOutput": "Hello, modern C++!",
+          "stderr": "",
+          "exitCode": 0,
+          "executionTimeMs": 8.047582000003217
+        },
+        {
+          "testId": "Test 2",
+          "passed": true,
+          "isHidden": false,
+          "input": "run",
+          "expectedOutput": "Hello, modern C++!",
+          "actualOutput": "Hello, modern C++!",
+          "stderr": "",
+          "exitCode": 0,
+          "executionTimeMs": 10.341307999993887
+        },
+        {
+          "testId": "Test 3",
+          "passed": true,
+          "isHidden": false,
+          "input": "test",
+          "expectedOutput": "Hello, modern C++!",
+          "actualOutput": "Hello, modern C++!",
+          "stderr": "",
+          "exitCode": 0,
+          "executionTimeMs": 16.0781390000011
+        },
+        {
+          "testId": "Hidden test 4",
+          "passed": true,
+          "isHidden": true,
+          "actualOutput": "Passed",
+          "executionTimeMs": 7.747358999999676
+        },
+        {
+          "testId": "Hidden test 5",
+          "passed": true,
+          "isHidden": true,
+          "actualOutput": "Passed",
+          "executionTimeMs": 7.697166999996341
+        }
+      ],
+      "mode": "assessment",
+      "wasAssisted": false,
+      "verified": true,
+      "executionTimeMs": 49.91155499999422,
+      "compilationTimeMs": 539.6566450000009
+    }
+  }
+}

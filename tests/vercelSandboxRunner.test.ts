@@ -2,27 +2,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VercelSandboxCodeRunner, SANDBOX_LIMITS, provisionCommand } from '../server/vercelSandboxCodeRunner';
 import { getCodeRunner, WandboxCodeRunner, LocalCodeRunner, IsolatedProductionRunner, type RunnerRequest } from '../server/codeRunner';
 import { evaluateSubmission } from '../server/evaluateSubmission';
+import { compilerVersion } from '../server/sandbox/compilerEnvironment';
 
 const outcome = (stdout = 'Hello, modern C++!\n', overrides = {}) => ({ stdout, stderr: '', exitCode: 0, executionTimeMs: 2, timedOut: false, outputLimited: false, ...overrides });
 const request: RunnerRequest = { code: '#include <iostream>\nint main(){std::cout << "Hello, modern C++!";}', mode: 'assessment', wasAssisted: false,
   testCases: [{ input: 'first', expectedOutput: 'Hello, modern C++!' }, { input: 'secret input', expectedOutput: 'Hello, modern C++!', isHidden: true }] };
 
 function fixture(results = [outcome(''), outcome(), outcome()]) {
-  let index = 0;
   const inputs: any[] = [];
+  const detached = {
+    writeStdin: vi.fn(async (data: string) => { inputs.push(JSON.parse(data)); }),
+    closeStdin: vi.fn(async () => {}),
+    wait: vi.fn(async () => ({ exitCode: 0, stdout: async () => JSON.stringify({ compilation: results[0], tests: results.slice(1) }) })),
+  };
   const client = {
     update: vi.fn(async () => {}), writeFiles: vi.fn(async () => {}), stop: vi.fn(async () => {}), readFileToBuffer: vi.fn(),
-    runCommand: vi.fn(async (command: any, args?: string[]) => {
-      if (command?.stdin) {
-        let text = '';
-        for await (const chunk of command.stdin) text += chunk;
-        inputs.push(JSON.parse(text));
-      }
-      return { exitCode: 0, stdout: async () => command === 'sudo' && args?.[0] === 'cat' ? JSON.stringify(results[index++]) : '', stderr: async () => '' };
-    }),
+    runCommand: vi.fn(async (command: any, _args?: string[]) => command?.stdin ? detached : { exitCode: 0, stdout: async () => '', stderr: async () => '' }),
   };
   const create = vi.fn(async (_options: any) => client);
-  return { client, create, inputs, runner: new VercelSandboxCodeRunner(create as any) };
+  return { client, create, inputs, detached, runner: new VercelSandboxCodeRunner(create as any, { snapshot: null, onTiming: () => {} }) };
 }
 
 afterEach(() => vi.unstubAllEnvs());
@@ -32,8 +30,10 @@ describe('Vercel sandbox runner', () => {
     const f = fixture();
     const result = await f.runner.evaluate(request);
     expect(result).toMatchObject({ compiled: true, passed: true, testsPassed: 2, verified: false, compilationTimeMs: 2, executionTimeMs: 4 });
-    expect(f.inputs.map(x => x.phase)).toEqual(['compile', 'run', 'run']);
-    expect(f.inputs.filter(x => x.phase === 'run').map(x => x.index)).toEqual([0, 1]);
+    expect(f.inputs).toHaveLength(1);
+    expect(f.inputs[0].inputs).toEqual(['first', 'secret input']);
+    expect(f.inputs[0].source).toBe(request.code);
+    expect(f.detached.wait).toHaveBeenCalledOnce();
     expect(f.client.stop).toHaveBeenCalledOnce();
     expect(f.create.mock.calls[0][0]).toMatchObject({ persistent: false, resources: { vcpus: 1 }, timeout: 200000 });
     expect(f.create.mock.calls[0][0]).not.toHaveProperty('name');
@@ -92,10 +92,11 @@ describe('Vercel sandbox runner', () => {
     if (failure === 'policy') f.client.update.mockRejectedValueOnce(new Error('unavailable'));
     if (failure === 'upload') f.client.writeFiles.mockRejectedValueOnce(new Error('unavailable'));
     if (failure === 'cleanup') f.client.stop.mockRejectedValueOnce(new Error('unavailable'));
-    if (failure === 'supervisor' || failure === 'result') {
+    if (failure === 'result') f.detached.wait.mockResolvedValueOnce({exitCode: 0, stdout: async () => 'invalid JSON'});
+    if (failure === 'supervisor') {
       const original = f.client.runCommand.getMockImplementation()!;
       f.client.runCommand.mockImplementation(async (command: any, args?: any) => {
-        if ((failure === 'supervisor' && command?.stdin) || (failure === 'result' && command === 'sudo' && args?.[0] === 'cat')) throw new Error('unavailable');
+        if (command?.stdin) throw new Error('unavailable');
         return original(command, args);
       });
     }
@@ -160,5 +161,67 @@ describe('provider configuration', () => {
     expect(getCodeRunner()).toBeInstanceOf(WandboxCodeRunner);
     vi.stubEnv('NODE_ENV', 'development');
     expect(getCodeRunner()).toBeInstanceOf(LocalCodeRunner);
+  });
+});
+
+describe('trusted compiler snapshot and batch execution', () => {
+  const snapshot = () => ({ snapshotId: 'snap_trusted', version: compilerVersion, createdAt: Date.now() });
+  it('restores a fresh deny-all sandbox and skips all provisioning and infrastructure uploads', async () => {
+    const f = fixture(); const metrics: any[] = [];
+    const runner = new VercelSandboxCodeRunner(f.create as any, { snapshot: snapshot(), onTiming: t => metrics.push(t) });
+    const result = await runner.evaluate(request);
+    expect(result.passed).toBe(true);
+    expect(f.create).toHaveBeenCalledOnce();
+    expect(f.create.mock.calls[0][0]).toMatchObject({ source: { type: 'snapshot', snapshotId: 'snap_trusted' }, networkPolicy: 'deny-all', persistent: false });
+    expect(f.create.mock.calls[0][0]).not.toHaveProperty('name');
+    expect(f.client.writeFiles).not.toHaveBeenCalled();
+    expect(f.client.update).not.toHaveBeenCalled();
+    expect(f.client.runCommand).toHaveBeenCalledOnce();
+    expect(f.inputs).toHaveLength(1);
+    expect(f.inputs[0]).not.toHaveProperty('expectedOutput');
+    expect(metrics[0]).toMatchObject({ snapshotHit: true, sdkCalls: 7, compilationMs: 2, executionMs: 4 });
+    expect(metrics[0].phases).not.toHaveProperty('aptProvisioning');
+    expect(f.client.stop).toHaveBeenCalledOnce();
+  });
+  it.each(['version', 'age'])('rebuilds an isolated environment when snapshot %s is stale', async reason => {
+    const f = fixture(); const metadata = snapshot();
+    if (reason === 'version') metadata.version = 'outdated';
+    else metadata.createdAt -= 8 * 24 * 60 * 60 * 1000;
+    const runner = new VercelSandboxCodeRunner(f.create as any, { snapshot: metadata, onTiming: () => {} });
+    expect((await runner.evaluate(request)).passed).toBe(true);
+    expect(f.create.mock.calls[0][0]).not.toHaveProperty('source');
+    expect(f.client.update).toHaveBeenCalledWith({ networkPolicy: 'deny-all' });
+    const uploaded = f.client.writeFiles.mock.calls.flatMap(([files]: any) => files).map(file => file.content.toString()).join('');
+    expect(uploaded).not.toContain(request.code);
+    expect(uploaded).not.toContain('secret input');
+  });
+  it('recovers a missing snapshot before uploading student data, using the same provider', async () => {
+    const f = fixture(); f.create.mockRejectedValueOnce({ json: { error: { code: 'snapshot_not_found' } } });
+    const runner = new VercelSandboxCodeRunner(f.create as any, { snapshot: snapshot(), onTiming: () => {} });
+    expect((await runner.evaluate(request)).passed).toBe(true);
+    expect(f.create).toHaveBeenCalledTimes(2);
+    expect(f.create.mock.calls[1][0]).toHaveProperty('image');
+    expect(f.inputs).toHaveLength(1);
+  });
+  it.each(['forbidden', 'rate_limit', 'network_error'])('does not retry snapshot %s failures', async code => {
+    const f = fixture(); f.create.mockRejectedValueOnce({ json: { error: { code } } });
+    const runner = new VercelSandboxCodeRunner(f.create as any, { snapshot: snapshot(), onTiming: () => {} });
+    await expect(runner.evaluate(request)).rejects.toBeDefined();
+    expect(f.create).toHaveBeenCalledOnce();
+    expect(f.inputs).toHaveLength(0);
+  });
+  it('does not rebuild or retry after a supervisor or manifest failure', async () => {
+    const f = fixture(); f.detached.wait.mockResolvedValueOnce({ exitCode: 1, stdout: async () => '' });
+    const runner = new VercelSandboxCodeRunner(f.create as any, { snapshot: snapshot(), onTiming: () => {} });
+    const response = await evaluateSubmission({ challengeId: 'cc-t1', code: request.code, mode: 'assessment' }, runner);
+    expect(response.status).toBe(503);
+    expect(response.result.verified).toBe(false);
+    expect(f.create).toHaveBeenCalledOnce();
+    expect(f.client.stop).toHaveBeenCalledOnce();
+  });
+  it('rejects incomplete or malformed batch outcomes before scoring', async () => {
+    const f = fixture([outcome('')]);
+    await expect(f.runner.evaluate(request)).rejects.toThrow('Invalid sandbox test count');
+    expect(f.client.stop).toHaveBeenCalledOnce();
   });
 });
