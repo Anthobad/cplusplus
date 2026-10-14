@@ -18,6 +18,8 @@
  */
 
 import { Phase, Unit, UserProgress, Exam } from "../types";
+import { withGuideCoverage } from "./curriculumGuideContent";
+import { withBeginnerLessons } from "./beginnerLessons";
 import { DOMAIN_1_UNITS } from "./domain1_basics";
 import { DOMAIN_2_UNITS } from "./domain2_datastructures";
 import { DOMAIN_3_UNITS } from "./domain3_oop";
@@ -40,7 +42,7 @@ export const DOMAIN_1_PHASE: Phase = {
   description: "C++ Program structure, fundamental types, memory lifecycles, operators, I/O streams, control flow, functions & references, raw pointers & physical memory, compilation, exceptions, classes, and smart pointers.",
   color: "blue",
   iconName: "Code2",
-  weeks: DOMAIN_1_UNITS,
+  weeks: withGuideCoverage(withBeginnerLessons(DOMAIN_1_UNITS)),
 };
 
 export const DOMAIN_2_PHASE: Phase = {
@@ -52,7 +54,7 @@ export const DOMAIN_2_PHASE: Phase = {
   description: "Sequential arrays (vector, array), linked structures (list, forward_list), sets, maps, stack LIFO, queue FIFO & priority queues, binary search trees, graphs, and iterator algorithms.",
   color: "emerald",
   iconName: "Database",
-  weeks: DOMAIN_2_UNITS,
+  weeks: withGuideCoverage(withBeginnerLessons(DOMAIN_2_UNITS)),
 };
 
 export const DOMAIN_3_PHASE: Phase = {
@@ -64,7 +66,7 @@ export const DOMAIN_3_PHASE: Phase = {
   description: "Inheritance hierarchies, dynamic polymorphism & vtables, operator overloading, SOLID principles, templates & generic programming, and multi-threading synchronization.",
   color: "purple",
   iconName: "Boxes",
-  weeks: DOMAIN_3_UNITS,
+  weeks: withGuideCoverage(withBeginnerLessons(DOMAIN_3_UNITS)),
 };
 
 export const DOMAIN_4_PHASE: Phase = {
@@ -76,7 +78,7 @@ export const DOMAIN_4_PHASE: Phase = {
   description: "Asymptotic time complexity (Big-O/Omega/Theta), space complexity, two pointers, sliding window, sorting algorithms (Introsort), searching, and recursion.",
   color: "amber",
   iconName: "Cpu",
-  weeks: DOMAIN_4_UNITS,
+  weeks: withGuideCoverage(withBeginnerLessons(DOMAIN_4_UNITS)),
 };
 
 export const ALL_PHASES: Phase[] = [

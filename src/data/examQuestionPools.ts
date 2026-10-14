@@ -1,4 +1,5 @@
 import { ExamQuestionDetail, Exam } from "../types";
+import { withAssessmentPools } from './assessmentContent';
 
 /**
  * Extensive question pools for each of the 4 milestone exams.
@@ -9,7 +10,7 @@ import { ExamQuestionDetail, Exam } from "../types";
  * - Code Analysis (Finding Subtle Bugs, Race Conditions, Memory Leaks)
  * - Coding Challenges (Real hands-on C++ implementations)
  */
-export const EXAM_QUESTION_POOLS: Record<string, ExamQuestionDetail[]> = {
+export const EXAM_QUESTION_POOLS: Record<string, ExamQuestionDetail[]> = withAssessmentPools({
   "exam-foundations": [
     // --- MCQs (10 pts each) ---
     {
@@ -1135,7 +1136,7 @@ std::unique_ptr<T> my_make_unique(Args&&... args) {
       rubricKeywords: ["std::unique_ptr<T>", "new T", "std::forward<Args>(args)..."]
     }
   ]
-};
+});
 
 /**
  * Returns all questions in the pool for a given exam ID.
