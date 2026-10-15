@@ -1,11 +1,10 @@
-import React, { lazy, useState, useEffect } from "react";
+import React, { lazy, useState, useEffect, useRef } from "react";
 import type { UserProgress, MockInterviewReport } from "./types";
 import { ALL_UNITS, getUnitById, checkExamPrerequisites, getUnitLockReason } from "./data/curriculumSummary";
 import { CURRICULUM_EXAMS } from "./data/curriculumSummary";
 import { 
   getUserProgress, 
-  saveUserProgress, 
-  saveQuizScore, 
+  completeUnit,
   resetUserProgress,
   DEFAULT_PROGRESS,
   getCleanGuestProgress,
@@ -60,6 +59,9 @@ function AppContent() {
   // Student progress state - default to guest mode to ensure signed-out state is cleanly reflected
   const [userId, setUserId] = useState<string>("guest");
   const [progress, setProgress] = useState<UserProgress>(getCleanGuestProgress());
+
+  const progressRef = useRef(progress);
+  useEffect(() => { progressRef.current = progress; }, [progress]);
 
   // Assessment Context
   const { assessmentMode, canUseAiMentor, isAssessmentActive } = useAssessment();
@@ -135,7 +137,7 @@ function AppContent() {
 
   // Handlers for progression with strict exam gating enforcement
   const handleSelectUnit = (unitId: string) => {
-    const lock = getUnitLockReason(unitId, progress);
+    const lock = getUnitLockReason(unitId, progressRef.current);
     if (lock.isLocked) {
       if (lock.reason === "milestone_exam" && lock.requiredExam) {
         const unit = getUnitById(unitId);
@@ -166,7 +168,7 @@ function AppContent() {
   const handleSelectExam = (examId: string) => {
     const exam = CURRICULUM_EXAMS.find(e => e.id === examId);
     if (exam) {
-      const prereq = checkExamPrerequisites(exam, progress);
+      const prereq = checkExamPrerequisites(exam, progressRef.current);
       if (!prereq.isUnlocked) {
         setToastMessage(
           `Exam Locked: Please complete all ${prereq.totalRequired} prerequisite units first (${prereq.completedCount}/${prereq.totalRequired} completed).`
@@ -181,74 +183,22 @@ function AppContent() {
   };
 
   const handleCompleteUnit = async (unitId: string) => {
-    if (!progress.completedUnitIds.includes(unitId)) {
-      const updatedCompleted = [...progress.completedUnitIds, unitId];
-      const nextUnitIndex = ALL_UNITS.findIndex(u => u.id === unitId) + 1;
-      const nextWeekNum = nextUnitIndex < ALL_UNITS.length
-        ? ALL_UNITS[nextUnitIndex].weekNumber
-        : (ALL_UNITS[ALL_UNITS.length - 1]?.weekNumber || 39);
-
-      const updatedProgress: UserProgress = {
-        ...progress,
-        completedUnitIds: updatedCompleted,
-        currentWeekNumber: nextWeekNum,
-        lastActiveTimestamp: Date.now()
-      };
-
-      setProgress(updatedProgress);
-      await saveUserProgress(updatedProgress, userId);
-    }
+    const updated = await completeUnit(unitId, userId);
+    progressRef.current = updated;
+    setProgress(updated);
   };
 
-  const handleSaveQuizScore = async (quizId: string, score: number, passed: boolean) => {
-    const updatedProgress = await saveQuizScore(userId, quizId, score, passed);
-    setProgress(updatedProgress);
+  const handleSaveQuizScore = async (_quizId: string, _score: number, _passed: boolean) => {
+    setProgress(await getUserProgress(userId));
   };
 
-  const handleSaveCodingResult = async (
-    challengeId: string,
-    result: { passed: boolean; score: number; verified: boolean; wasAssisted: boolean }
-  ) => {
-    const currentResults = progress.codingChallengeResults || {};
-    const updatedResults = {
-      ...currentResults,
-      [challengeId]: {
-        passed: result.passed,
-        score: result.score,
-        testsPassed: result.passed ? 1 : 0,
-        totalTests: 1,
-        timestamp: Date.now(),
-        verified: result.verified,
-        wasAssisted: result.wasAssisted,
-      },
-    };
-
-    const verifiedPassed = result.verified && result.passed
-      ? Array.from(new Set([...(progress.verifiedCodingPassed || []), challengeId]))
-      : (progress.verifiedCodingPassed || []);
-
-    const updatedProgress: UserProgress = {
-      ...progress,
-      codingChallengeResults: updatedResults,
-      verifiedCodingPassed: verifiedPassed,
-      totalCodingChallengesSolved: Object.values(updatedResults).filter((r: any) => r.passed).length,
-      lastActiveTimestamp: Date.now(),
-    };
-
-    setProgress(updatedProgress);
-    await saveUserProgress(updatedProgress, userId);
+  const handleSaveCodingResult = async (_challengeId: string, _result: unknown) => {
+    setProgress(await getUserProgress(userId));
   };
 
   const handleSaveMockReport = async (report: MockInterviewReport) => {
-    const currentReports = progress.mockInterviewReports || [];
-    const updatedProgress: UserProgress = {
-      ...progress,
-      mockInterviewReports: [report, ...currentReports],
-      lastActiveTimestamp: Date.now(),
-    };
-    setProgress(updatedProgress);
-    await saveUserProgress(updatedProgress, userId);
-    setToastMessage("Interview report saved successfully to your cloud profile.");
+    setProgress(await getUserProgress(userId));
+    setToastMessage("Interview report saved to your profile.");
     setTimeout(() => setToastMessage(null), 4000);
   };
 

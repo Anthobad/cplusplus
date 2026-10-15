@@ -237,6 +237,9 @@ export interface MockInterviewReport {
 }
 
 export interface UserProgress {
+  integrityVersion?: number;
+  legacyBaseline?: boolean;
+  hardenedAt?: number;
   userId?: string;
   unlockedUnits: string[];
   completedUnits: string[];
@@ -340,6 +343,7 @@ export interface Exam {
 export type ExamInstance = Exam;
 
 export interface ExamAttempt {
+  integritySource?: 'server-v2';
   id?: string;
   examId: string;
   examTitle?: string;

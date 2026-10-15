@@ -3,7 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "overrides": {
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "^1.14.6"
+    }
+  },
   "scripts": {
+    "test:firestore-security": "node --import tsx scripts/test-firestore-security.ts",
+    "review:progress-migration": "node --import tsx scripts/review-progress-migration.ts",
     "generate:curriculum": "node --import tsx scripts/generate-curriculum-assets.ts",
     "check:bundle": "node scripts/check-frontend-bundle.mjs",
     "postbuild": "npm run check:bundle",
@@ -20,6 +30,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@google-cloud/firestore": "^9.1.0",
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vercel/sandbox": "^3.8.0",
@@ -28,6 +39,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.18.0",
+    "firebase-admin": "^14.5.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
@@ -36,6 +48,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",

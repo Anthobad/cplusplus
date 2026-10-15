@@ -21,9 +21,10 @@ import confetti from "canvas-confetti";
 import { Exam, ExamAttempt, UserProgress, CodeEvaluationResult } from "../types";
 import { gradeExam } from '../lib/examGrading';
 import { EXPLANATION_CRITERIA, type ExplanationAssessment } from '../lib/explanationRubric';
-import { saveExamAttempt } from "../lib/firebase";
+import { cacheTrustedExam } from "../lib/firebase";
+import { trustedRequest } from "../lib/authenticatedFetch";
 import { checkExamPrerequisites, getFirstUnitAfterExam } from "../data/curriculumSummary";
-import { generateRandomizedExam, getExamPoolStatistics } from "../data/examQuestionPools";
+import { getExamPoolStatistics } from "../data/examQuestionPools";
 import { useAssessment } from "../lib/AssessmentContext";
 
 interface ExamViewProps {
@@ -47,10 +48,12 @@ export const ExamView: React.FC<ExamViewProps> = ({
 }) => {
   // Prerequisite check
   const prereqStatus = progress ? checkExamPrerequisites(exam, progress) : { isUnlocked: true, totalRequired: 0, completedCount: 0, missingUnits: [], firstMissingUnit: undefined };
-  const isPrereqLocked = !prereqStatus.isUnlocked;
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const isPrereqLocked = !prereqStatus.isUnlocked || !sessionId;
 
   // Active randomized exam state
-  const [activeExam, setActiveExam] = useState<Exam>(() => generateRandomizedExam(exam));
+  const [activeExam, setActiveExam] = useState<Exam>(exam);
   const submissionVersion = useRef(0);
   const poolStats = getExamPoolStatistics(exam.id);
   const { setAssessmentMode, setAssessmentTitle } = useAssessment();
@@ -58,7 +61,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
   // Sync if parent exam changes
   useEffect(() => {
     submissionVersion.current++;
-    setActiveExam(generateRandomizedExam(exam));
+    void startServerExam(true);
     setAnswers({});
     setCodingResults({});
     setCodingPoints({});
@@ -161,12 +164,22 @@ export const ExamView: React.FC<ExamViewProps> = ({
     }
   };
 
+  async function startServerExam(resetClock: boolean) {
+    const version = ++submissionVersion.current;
+    setSessionId(null); setSessionLoading(true); setSubmissionError(null);
+    try {
+      const session = await trustedRequest<{ sessionId: string; exam: Exam }>("/api/assessment/exam/start", { examId: exam.id });
+      if (version !== submissionVersion.current) return;
+      setActiveExam(session.exam); setSessionId(session.sessionId);
+      setAnswers({});
+      if (resetClock) setSecondsRemaining(session.exam.durationMinutes * 60);
+    } catch (error) {
+      if (version === submissionVersion.current) setSubmissionError(error instanceof Error ? error.message : "Exam session unavailable.");
+    } finally { if (version === submissionVersion.current) setSessionLoading(false); }
+  }
   const handleShufflePool = () => {
-    if (examSubmitted || submittingRef.current || timeExpired) return;
-    const freshExam = generateRandomizedExam(exam);
-    setActiveExam(freshExam);
-    setAnswers({});
-    setSubmissionError(null);
+    if (examSubmitted || submittingRef.current || timeExpired || sessionLoading) return;
+    void startServerExam(false);
     setPoolShuffledNotice(true);
     setTimeout(() => setPoolShuffledNotice(false), 3000);
   };
@@ -184,8 +197,10 @@ export const ExamView: React.FC<ExamViewProps> = ({
     const submittedAnswers = { ...answers };
     const version = submissionVersion.current;
     let graded: Awaited<ReturnType<typeof gradeExam>>;
+    let outcome: { grading: typeof graded; progress: UserProgress; attempt: ExamAttempt };
     try {
-      graded = await gradeExam(activeExam, submittedAnswers);
+      outcome = await trustedRequest("/api/assessment/exam/submit", { sessionId, answers: submittedAnswers, tabSwitchWarnings: tabSwitches });
+      graded = outcome.grading;
     } catch (error) {
       if (version !== submissionVersion.current) return;
       setSubmissionError(error instanceof Error ? error.message : 'Evaluation failed. Your answers have been retained; retry submission.');
@@ -212,39 +227,17 @@ export const ExamView: React.FC<ExamViewProps> = ({
       });
     }
 
-    // Save to Firebase database and update progress
-    const attempt: ExamAttempt = {
-      examId: activeExam.id,
-      examTitle: activeExam.title,
-      score: scaledScore,
-      passed: passed,
-      timestamp: Date.now(),
-      tabSwitchWarnings: tabSwitches,
-      answers: submittedAnswers,
-      generatedQuestions: activeExam.questions,
-      codingResults: graded.codingResults,
-      explanationResults: graded.explanationResults,
-    };
-
-    try {
-      const updated = await saveExamAttempt(attempt, userId);
-      if (onExamAttemptSaved) {
-        onExamAttemptSaved(updated);
-      }
-    } catch (e) {
-      console.warn("Could not persist exam attempt to Firebase:", e);
-    } finally {
-      submittingRef.current = false;
-      setIsSubmitting(false);
-    }
+    const updated = cacheTrustedExam(outcome.attempt, outcome.progress, userId);
+    onExamAttemptSaved?.(updated);
+    submittingRef.current = false;
+    setIsSubmitting(false);
   };
   submitLatest.current = handleSubmitExam;
 
   const handleRetakeExam = () => {
     if (submittingRef.current) return;
     // Generate fresh randomized questions from pool for retake!
-    const freshExam = generateRandomizedExam(exam);
-    setActiveExam(freshExam);
+    void startServerExam(true);
     setExamSubmitted(false);
     setIsPassed(false);
     setExamScore(0);
@@ -266,8 +259,14 @@ export const ExamView: React.FC<ExamViewProps> = ({
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  if (sessionLoading || !sessionId) return <div className="p-8 text-slate-200 space-y-4">
+    <p role={sessionLoading ? "status" : "alert"}>{sessionLoading ? "Starting secure exam session…" : submissionError || "Exam session unavailable."}</p>
+    {!sessionLoading && <button type="button" className="text-blue-300 underline mr-4" onClick={() => void startServerExam(true)}>Retry exam session</button>}
+    <button type="button" className="text-blue-300 underline" onClick={onExitExam}>Curriculum Roadmap</button>
+  </div>;
+
   if (isPrereqLocked) {
-    return (
+  return (
       <div 
         id="locked-exam-gate-screen"
         className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6"

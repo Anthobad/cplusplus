@@ -28,7 +28,7 @@ interface UnitViewProps {
   onBackToRoadmap: () => void;
   onSelectUnit: (unitId: string) => void;
   onSelectExam: (examId: string) => void;
-  onCompleteUnit: (unitId: string) => void;
+  onCompleteUnit: (unitId: string) => void | Promise<void>;
   onSaveQuizScore: (quizId: string, score: number, passed: boolean) => void;
   onSaveCodingResult?: (challengeId: string, result: { passed: boolean; score: number; verified: boolean; wasAssisted: boolean }) => void;
   onOpenAiWithContext: () => void;
@@ -49,6 +49,7 @@ export const UnitView: React.FC<UnitViewProps> = ({
 }) => {
   const { setAssessmentMode, setAssessmentTitle } = useAssessment();
   const [activeTab, setActiveTab] = useState<"theory" | "deepdive" | "exercises" | "challenge">("theory");
+  const [completionError, setCompletionError] = useState<string | null>(null);
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
 
   // Reset assessment mode when moving away from challenge tab
@@ -85,8 +86,9 @@ export const UnitView: React.FC<UnitViewProps> = ({
     onSaveQuizScore(unit.quiz.id, score, true);
   };
 
-  const handleCompleteAndProceed = () => {
-    onCompleteUnit(unit.id);
+  const handleCompleteAndProceed = async () => {
+    try { await onCompleteUnit(unit.id); }
+    catch (error) { setCompletionError(error instanceof Error ? error.message : "Completion could not be saved."); return; }
     if (nextStep.type === "milestone_exam" && nextStep.requiredExam) {
       // Must take milestone exam — no bypass allowed!
       onSelectExam(nextStep.requiredExam.id);
@@ -577,7 +579,7 @@ export const UnitView: React.FC<UnitViewProps> = ({
                   verified: true,
                   wasAssisted: false,
                 });
-                onCompleteUnit(unit.id);
+                void Promise.resolve(onCompleteUnit(unit.id)).catch(error => setCompletionError(error.message));
               }}
               onPracticeSuccess={() => {
                 onSaveCodingResult?.(unit.exercises.codingChallenge.id, {
@@ -592,6 +594,7 @@ export const UnitView: React.FC<UnitViewProps> = ({
         )}
       </div>
 
+      {completionError && <p role="alert" className="p-4 text-red-300">{completionError}</p>}
       {/* Bottom Step-by-Step Progression Bar */}
       <div className="fixed bottom-0 inset-x-0 z-30 bg-slate-950/90 border-t border-slate-800 backdrop-blur-md px-4 sm:px-8 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">

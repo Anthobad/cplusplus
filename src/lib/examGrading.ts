@@ -1,4 +1,5 @@
 import type { CodeEvaluationResult, Exam, ExamQuestionDetail } from '../types';
+import { authenticatedFetch } from './authenticatedFetch';
 import { canonicalExplanationId, EXPLANATION_CRITERIA, EXPLANATION_RUBRIC_VERSION,
   explanationPercentage, unansweredExplanation, type ExplanationAssessment } from './explanationRubric';
 
@@ -12,7 +13,7 @@ export interface GradedExam {
 }
 
 export async function evaluateExamCode(question: ExamQuestionDetail, answer: string,
-  request: typeof fetch = fetch): Promise<CodeEvaluationResult> {
+  request: typeof fetch = authenticatedFetch): Promise<CodeEvaluationResult> {
   if (!question.codingChallengeId) throw new Error('This exam coding question is not configured. Your answers have been retained.');
   if (!answer.trim()) return {
     compiled: false, passed: false, score: 0, testsPassed: 0, totalTests: 0, testResults: [],
@@ -49,7 +50,7 @@ export async function evaluateExamCode(question: ExamQuestionDetail, answer: str
 }
 
 export async function evaluateExamExplanation(question: ExamQuestionDetail, answer: string,
-  request: typeof fetch = fetch): Promise<ExplanationAssessment> {
+  request: typeof fetch = authenticatedFetch): Promise<ExplanationAssessment> {
   if (!answer.trim()) return unansweredExplanation(question.id);
   let response: Response;
   try {

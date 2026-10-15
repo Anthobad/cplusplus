@@ -1,3 +1,4 @@
+import { submitQuiz } from "../lib/firebase";
 import React, { useState, useEffect } from "react";
 import { X, CheckCircle2, XCircle, RotateCcw, Award, AlertCircle, HelpCircle } from "lucide-react";
 import { Quiz, QuizQuestion } from "../types";
@@ -18,6 +19,8 @@ export const QuizModal: React.FC<QuizModalProps> = ({
 }) => {
   const { setAssessmentMode, setAssessmentTitle } = useAssessment();
   const [selectedAnswers, setSelectedAnswers] = useState<{ [qId: string]: number }>({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [currentScore, setCurrentScore] = useState(0);
   const [isPassed, setIsPassed] = useState(false);
@@ -40,31 +43,22 @@ export const QuizModal: React.FC<QuizModalProps> = ({
   if (!isOpen) return null;
 
   const handleSelectOption = (questionId: string, optionIndex: number) => {
-    if (submitted) return;
+    if (submitted || busy) return;
     setSelectedAnswers(prev => ({
       ...prev,
       [questionId]: optionIndex
     }));
   };
 
-  const calculateResults = () => {
-    let correctCount = 0;
-    quiz.questions.forEach(q => {
-      if (selectedAnswers[q.id] === q.correctAnswerIndex) {
-        correctCount++;
-      }
-    });
-
-    const scorePercentage = Math.round((correctCount / quiz.questions.length) * 100);
-    const passed = scorePercentage >= quiz.passingScorePercentage;
-
-    setCurrentScore(scorePercentage);
-    setIsPassed(passed);
-    setSubmitted(true);
-
-    if (passed) {
-      onPassQuiz(scorePercentage);
-    }
+  const calculateResults = async () => {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      const { score, passed } = await submitQuiz(quiz.id, selectedAnswers);
+      setCurrentScore(score); setIsPassed(passed); setSubmitted(true);
+      if (passed) onPassQuiz(score);
+    } catch (error) { setError(error instanceof Error ? error.message : "Quiz evaluation unavailable; answers retained."); }
+    finally { setBusy(false); }
   };
 
   const handleRetry = () => {
@@ -90,7 +84,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({
               </p>
             </div>
           </div>
-          {!submitted && (
+          {!submitted && !busy && (
             <button
               onClick={onClose}
               className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
@@ -108,6 +102,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({
 
         {/* Question Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {error && <p role="alert" className="text-red-300">{error}</p>}
           {/* Result Banner if submitted */}
           {submitted && (
             <div
@@ -227,10 +222,10 @@ export const QuizModal: React.FC<QuizModalProps> = ({
           {!submitted ? (
             <button
               onClick={calculateResults}
-              disabled={!allAnswered}
+              disabled={!allAnswered || busy}
               className="px-5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20 transition-all"
             >
-              Submit Assessment
+              {busy ? "Grading…" : "Submit Assessment"}
             </button>
           ) : isPassed ? (
             <button
