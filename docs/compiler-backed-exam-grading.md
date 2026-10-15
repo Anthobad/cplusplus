@@ -1,6 +1,6 @@
 # Compiler-backed exam coding
 
-Exam coding answers now use the existing `/api/evaluate-code` endpoint in unassisted assessment mode. Coding points are derived from passed public/hidden tests; matching rubric words no longer earns coding credit. Explanation and code-analysis grading remain unchanged for the separate priority-2 work.
+Exam coding answers now use the existing `/api/evaluate-code` endpoint in unassisted assessment mode. Coding points are derived from passed public/hidden tests; matching rubric words no longer earns coding credit. The subsequent priority-2 update adds [rubric-based explanation and code-analysis grading](rubric-based-explanation-grading.md).
 
 ## Contracts and scoring
 

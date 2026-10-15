@@ -51,6 +51,7 @@ const corrections: Record<string, Partial<ExamQuestionDetail>> = {
   'efin-wtw-1': { explanation: 'RAII binds a resource to a correctly implemented owning object. Normal scope exit and unwinding to a handler run its destructor. It avoids scattered manual cleanup, but does not eliminate bad ownership designs, strong cycles or cleanup skipped by forced termination.' },
   'efin-wtw-2': { question: 'Why does vector often prefer copying over a potentially throwing move during reallocation when copying is available?', explanation: 'Copying leaves old elements intact, allowing failed new-buffer construction to roll back. A throwing move may already have changed its sources. Move-only throwing types may still be moved with conditional or weaker guarantees.', rubricKeywords: ['copy', 'move', 'throw', 'old', 'rollback'] },
   'efin-ca-1': { explanation: 'A joinable std::thread destructor invokes terminate in C++20 too. Join, use a lifetime-safe detach policy, or use jthread where suitable; joining is generally easiest when work belongs to the scope.' },
+  'efin-ca-2': { explanation: 'printVoice(Animal a) constructs a separate Animal value from the Dog base subobject, slicing derived behavior. It calls Animal::speak and prints ?. Use Animal& for this non-const speak method, or declare speak const consistently before changing the parameter to const Animal&.' },
 };
 
 type Choice = [topic: string, question: string, options: string[], answer: number, explanation: string];

@@ -20,6 +20,7 @@ import {
 import confetti from "canvas-confetti";
 import { Exam, ExamAttempt, UserProgress, CodeEvaluationResult } from "../types";
 import { gradeExam } from '../lib/examGrading';
+import { EXPLANATION_CRITERIA, type ExplanationAssessment } from '../lib/explanationRubric';
 import { saveExamAttempt } from "../lib/firebase";
 import { checkExamPrerequisites, getFirstUnitAfterExam } from "../data/curriculum";
 import { generateRandomizedExam, getExamPoolStatistics } from "../data/examQuestionPools";
@@ -61,6 +62,8 @@ export const ExamView: React.FC<ExamViewProps> = ({
     setAnswers({});
     setCodingResults({});
     setCodingPoints({});
+    setExplanationResults({});
+    setExplanationPoints({});
     setSubmissionError(null);
     setExamSubmitted(false);
     setIsPassed(false);
@@ -106,6 +109,8 @@ export const ExamView: React.FC<ExamViewProps> = ({
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [codingResults, setCodingResults] = useState<Record<string, CodeEvaluationResult>>({});
   const [codingPoints, setCodingPoints] = useState<Record<string, number>>({});
+  const [explanationResults, setExplanationResults] = useState<Record<string, ExplanationAssessment>>({});
+  const [explanationPoints, setExplanationPoints] = useState<Record<string, number>>({});
   const [poolShuffledNotice, setPoolShuffledNotice] = useState(false);
 
   // Countdown timer effect
@@ -192,6 +197,8 @@ export const ExamView: React.FC<ExamViewProps> = ({
     const { score: scaledScore, passed } = graded;
     setCodingResults(graded.codingResults);
     setCodingPoints(graded.codingPoints);
+    setExplanationResults(graded.explanationResults);
+    setExplanationPoints(graded.explanationPoints);
 
     setExamScore(scaledScore);
     setIsPassed(passed);
@@ -216,6 +223,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
       answers: submittedAnswers,
       generatedQuestions: activeExam.questions,
       codingResults: graded.codingResults,
+      explanationResults: graded.explanationResults,
     };
 
     try {
@@ -243,6 +251,8 @@ export const ExamView: React.FC<ExamViewProps> = ({
     setAnswers({});
     setCodingResults({});
     setCodingPoints({});
+    setExplanationResults({});
+    setExplanationPoints({});
     setSubmissionError(null);
     setSecondsRemaining(activeExam.durationMinutes * 60);
     setTabSwitches(0);
@@ -665,6 +675,13 @@ export const ExamView: React.FC<ExamViewProps> = ({
                     {q.type === 'coding-challenge' && (
                       <p className="text-xs text-blue-300 mb-3">{q.codingInstructions} Standard C++ headers are supplied by the evaluator. Coding points are based on public and hidden tests.</p>
                     )}
+                    {q.type !== 'coding-challenge' && (
+                      <div className="text-xs text-slate-300 mb-3 space-y-1">
+                        <p>Explanations are assessed by an AI-assisted rubric, not keyword matching. Concise, correct paraphrases are welcome.</p>
+                        {EXPLANATION_CRITERIA.map(criterion => <p key={criterion.id}>{criterion.label} ({criterion.weight}%): {criterion.description}</p>)}
+                        <p>Each criterion earns 0 (missing/incorrect), 1 (partial), or 2 (sufficient). An incorrect or missing central rule, or an explicit major contradiction, caps the explanation at 25%; partial central correctness caps it at 75%.</p>
+                      </div>
+                    )}
                     <textarea
                       rows={6}
                       aria-label={q.type === 'coding-challenge' ? `C++ answer ${idx + 1}` : `Explanation answer ${idx + 1}`}
@@ -685,6 +702,24 @@ export const ExamView: React.FC<ExamViewProps> = ({
                     {codingResults[q.id].testResults.filter(test => !test.isHidden && !test.passed && test.error).map((test, index) => (
                       <p key={index} className="text-red-300">{test.testId || `Public test ${index + 1}`}: {test.error}</p>
                     ))}
+                  </div>
+                )}
+
+                {examSubmitted && explanationResults[q.id] && (
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-3">
+                    <p>{explanationPoints[q.id]} / {q.points} explanation points — {explanationResults[q.id].evaluatedBy === 'unanswered' ? 'Unanswered' : 'AI-assisted rubric assessment'}</p>
+                    <p>{explanationResults[q.id].feedback}</p>
+                    {explanationResults[q.id].criteria.map(criterion => (
+                      <div key={criterion.id} className="space-y-1">
+                        <p className="font-semibold">{EXPLANATION_CRITERIA.find(c => c.id === criterion.id)?.label}: {criterion.level} / 2</p>
+                        {criterion.evidence && <blockquote className="border-l-2 border-slate-600 pl-2 whitespace-pre-wrap">{criterion.evidence}</blockquote>}
+                        <p>{criterion.feedback}</p>
+                      </div>
+                    ))}
+                    {explanationResults[q.id].fundamentalError.present && <div className="text-red-300 space-y-1">
+                      <p>Major misconception: {explanationResults[q.id].fundamentalError.feedback}</p>
+                      <blockquote className="border-l-2 border-red-600 pl-2">{explanationResults[q.id].fundamentalError.evidence}</blockquote>
+                    </div>}
                   </div>
                 )}
 
@@ -713,7 +748,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
               className="px-6 py-3 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/30 transition-all flex items-center space-x-2"
             >
               {isSubmitting ? <Sparkles className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-              <span>{isSubmitting ? 'Compiling and testing coding answers…' : 'Submit Examination & Finalize Score'}</span>
+              <span>{isSubmitting ? 'Evaluating code and explanations…' : 'Submit Examination & Finalize Score'}</span>
             </button>
           </div>
         )}

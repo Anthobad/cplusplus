@@ -359,6 +359,7 @@ export interface ExamAttempt {
   };
   generatedQuestions?: ExamQuestionDetail[];
   codingResults?: Record<string, CodeEvaluationResult>;
+  explanationResults?: Record<string, import('./lib/explanationRubric').ExplanationAssessment>;
   completedAt?: string;
   verified?: boolean;
 }

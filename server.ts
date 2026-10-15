@@ -6,6 +6,7 @@ import { getCodeRunner } from "./server/codeRunner.js";
 import { getTrustedChallenge } from "./server/challengeRegistry.js";
 import { evaluateSubmission } from "./server/evaluateSubmission.js";
 import { AICodeFeedback } from "./src/types.js";
+import { createExplanationHandler, judgeExplanationWithGemini, DEFAULT_EXPLANATION_MODEL } from "./server/assessExplanation.js";
 
 dotenv.config();
 
@@ -349,66 +350,15 @@ app.post("/api/evaluate-code", async (req, res) => {
   }
 });
 
-// Assessment: Conceptual Explanation Evaluation (Milestone Exam Part E)
-app.post("/api/assess-explanation", async (req, res) => {
-  try {
-    const { question, studentAnswer, rubricKeywords = [], maxPoints = 10 } = req.body;
+// Exam explanations use server-selected question-specific rubrics; never keyword or outage credit.
+app.post("/api/assess-explanation", createExplanationHandler({
+  model: () => process.env.EXAM_GRADING_MODEL || DEFAULT_EXPLANATION_MODEL,
+  judge: input => {
     const ai = getAIClient();
-
-    if (!ai || !studentAnswer || !studentAnswer.trim()) {
-      return res.json({
-        score: 0,
-        maxPoints,
-        feedback: "Please provide an explanation to receive points.",
-        coveredKeywords: [],
-        missedKeywords: rubricKeywords,
-        aiEvaluated: true,
-      });
-    }
-
-    const prompt = `You are evaluating a student's answer to a senior C++ interview conceptual question.
-Question: "${question}"
-Rubric Keywords expected: ${JSON.stringify(rubricKeywords)}
-Max Points: ${maxPoints}
-
-Student Answer:
-"${studentAnswer}"
-
-Evaluate whether the explanation demonstrates true technical understanding (memory mechanics, runtime vs compile-time behavior, standard semantics).
-Return JSON strictly in this structure:
-{
-  "score": number (between 0 and ${maxPoints}),
-  "feedback": "2-3 sentences evaluating the answer's technical accuracy and depth",
-  "coveredKeywords": ["list of rubric concepts student correctly explained"],
-  "missedKeywords": ["list of rubric concepts omitted or described inaccurately"],
-  "idealAnswerSummary": "Concise senior engineer model response"
-}`;
-
-    const response = await generateContentWithResilience(ai, {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.2,
-      },
-    });
-
-    const data = JSON.parse(response.text || "{}");
-    return res.json({
-      ...data,
-      maxPoints,
-      aiEvaluated: true,
-    });
-  } catch (err: any) {
-    return res.json({
-      score: 0,
-      maxPoints: req.body.maxPoints || 10,
-      feedback: "Explanation evaluation is temporarily unavailable.",
-      coveredKeywords: [],
-      missedKeywords: [],
-      aiEvaluated: true,
-    });
-  }
-});
+    if (!ai) return Promise.reject(new Error("Explanation grading is not configured"));
+    return judgeExplanationWithGemini(ai, input);
+  },
+}));
 
 // Mock Interview AI Agent endpoint
 app.post("/api/mock-interview", async (req, res) => {

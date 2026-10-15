@@ -1,6 +1,8 @@
 # Curriculum teaching review
 
-Subsequent update: [exam coding now uses compiler-backed grading](compiler-backed-exam-grading.md). The preserved-behavior and verification notes below describe the earlier content-only revision; explanation grading remains keyword-based.
+Subsequent updates: [compiler-backed exam coding](compiler-backed-exam-grading.md) and [rubric-based explanation grading](rubric-based-explanation-grading.md). The preserved-behavior and verification notes below describe the earlier content-only revision; the later grading changes are documented separately.
+
+Priority 3 follow-up: the learner reported insufficient explanation after trying the material. [The first three lessons now have expanded explanations, worked examples and a follow-up feedback procedure](beginner-learning-feedback.md). This revision has not yet been validated by follow-up learner results.
 
 The 39-topic curriculum now develops concepts from a beginner mental model through a complete C++20 example, a state-by-state trace, common mistakes and a transfer exercise. The guide's supplemental content and all 24 resource/practice URLs remain available.
 

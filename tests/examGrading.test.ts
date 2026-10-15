@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { gradeExam, evaluateExamCode } from '../src/lib/examGrading';
 import type { Exam, ExamQuestionDetail, CodeEvaluationResult } from '../src/types';
+import { unansweredExplanation } from '../src/lib/explanationRubric';
 
 const coding: ExamQuestionDetail = { id: 'random-id_s0', type: 'coding-challenge', points: 20,
   question: 'Implement the function', explanation: '', codingChallengeId: 'exam-estl-cc-2', rubricKeywords: ['priority_queue', 'top'] };
@@ -39,9 +40,11 @@ describe('Exam coding grading and failure handling', () => {
 
   it('scales coding points by actual passed tests and preserves other scoring/pass thresholds', async () => {
     const evaluate = vi.fn().mockResolvedValue(result({ passed: false, verified: false, testsPassed: 2, score: 50 }));
-    const graded = await gradeExam(exam, { ...nonCoding, [coding.id]: 'submitted implementation' }, evaluate);
+    const assess = vi.fn(async q => ({ ...unansweredExplanation(q.id), score: 100 }));
+    const graded = await gradeExam(exam, { ...nonCoding, [coding.id]: 'submitted implementation' }, evaluate, assess);
     expect(graded.codingPoints[coding.id]).toBe(10); expect(graded.score).toBe(90); expect(graded.passed).toBe(true);
     expect(graded.codingResults[coding.id].testsPassed).toBe(2);
+    expect(assess).toHaveBeenCalledTimes(2);
   });
 
   it('gives full coding points to an implementation passing all tests without matching keywords', async () => {
@@ -59,7 +62,7 @@ describe('Exam coding grading and failure handling', () => {
   it.each([503, 429, 500])('does not finalize grading on HTTP %s', async status => {
     const request = vi.fn().mockResolvedValue(new Response('{}', { status }));
     await expect(gradeExam(exam, { ...nonCoding, [coding.id]: 'valid code' },
-      (q, code) => evaluateExamCode(q, code, request))).rejects.toThrow('not finalized');
+      (q, code) => evaluateExamCode(q, code, request), async q => unansweredExplanation(q.id))).rejects.toThrow('not finalized');
   });
 
   it('retains the attempt on network, configuration and invalid-response failures', async () => {
