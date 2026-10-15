@@ -14,7 +14,7 @@ interface Message {
 interface AiMentorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  currentUnit?: Unit | null;
+  currentUnit?: Pick<Unit, "title" | "weekNumber" | "topics"> | null;
   isDisabledDueToExamOrQuiz?: boolean;
 }
 

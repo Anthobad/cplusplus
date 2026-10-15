@@ -22,7 +22,7 @@ import { Exam, ExamAttempt, UserProgress, CodeEvaluationResult } from "../types"
 import { gradeExam } from '../lib/examGrading';
 import { EXPLANATION_CRITERIA, type ExplanationAssessment } from '../lib/explanationRubric';
 import { saveExamAttempt } from "../lib/firebase";
-import { checkExamPrerequisites, getFirstUnitAfterExam } from "../data/curriculum";
+import { checkExamPrerequisites, getFirstUnitAfterExam } from "../data/curriculumSummary";
 import { generateRandomizedExam, getExamPoolStatistics } from "../data/examQuestionPools";
 import { useAssessment } from "../lib/AssessmentContext";
 

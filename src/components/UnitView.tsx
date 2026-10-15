@@ -19,7 +19,7 @@ import {
 import { Unit, UserProgress } from "../types";
 import { CodeChallengeEditor } from "./CodeChallengeEditor";
 import { QuizModal } from "./QuizModal";
-import { getNextUnit, getPreviousUnit, isUnitUnlocked, getNextStepAfterUnit } from "../data/curriculum";
+import { getNextUnit, getPreviousUnit, isUnitUnlocked, getNextStepAfterUnit } from "../data/curriculumSummary";
 import { useAssessment } from "../lib/AssessmentContext";
 
 interface UnitViewProps {

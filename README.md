@@ -2,6 +2,10 @@
 
 A production-grade, full-stack C++ interview preparation and mastery platform designed for senior and systems software engineering candidates.
 
+The roadmap also offers [Optional Interview Practice](docs/optional-interview-practice.md): five lessons with compiler-tested exercises for binary search, BFS, DFS, backtracking, and dynamic programming. This track is separate from the 39-topic progression.
+
+[Curriculum loading](docs/deferred-curriculum-loading.md) uses generated domain assets. Standard npm dev/build/test/lint commands generate them automatically; run `npm run generate:curriculum` before invoking tooling directly on a fresh checkout.
+
 ---
 
 ## 🏛️ Curriculum Architecture (4 Knowledge Domains)

@@ -24,7 +24,7 @@ import {
 } from "firebase/firestore";
 import firebaseConfig from "../../firebase-applet-config.json";
 import { UserProgress, ExamAttempt } from "../types";
-import { migrateUserProgress } from "../data/curriculum";
+import { migrateUserProgress } from "../data/curriculumSummary";
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();

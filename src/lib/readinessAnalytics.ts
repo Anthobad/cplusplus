@@ -1,5 +1,5 @@
-import { UserProgress, Unit } from "../types";
-import { ALL_UNITS, getUnitById } from "../data/curriculum";
+import type { UserProgress } from "../types";
+import { ALL_UNITS, getUnitById } from "../data/curriculumSummary";
 
 export type ReadinessStatus = "Strong" | "Developing" | "Needs Review" | "Insufficient Data";
 

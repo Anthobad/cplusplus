@@ -17,7 +17,7 @@ import {
   AlertTriangle,
   Brain
 } from "lucide-react";
-import { Phase, Unit, UserProgress, Exam } from "../types";
+import type { UserProgress } from "../types";
 import {
   ALL_PHASES,
   ALL_UNITS,
@@ -27,8 +27,9 @@ import {
   isExamPassed,
   getUnitLockReason,
   getPhaseGatingExam
-} from "../data/curriculum";
-import { CURRICULUM_EXAMS } from "../data/exams";
+} from "../data/curriculumSummary";
+import { CURRICULUM_EXAMS } from "../data/curriculumSummary";
+import type { ExamSummary } from "../data/curriculumTypes";
 
 interface RoadmapViewProps {
   progress: UserProgress;
@@ -37,6 +38,7 @@ interface RoadmapViewProps {
   onResetProgress: () => void;
   onNavigateReadiness?: () => void;
   onNavigateMockInterview?: () => void;
+  onNavigateInterviewPractice?: () => void;
 }
 
 export const RoadmapView: React.FC<RoadmapViewProps> = ({
@@ -46,6 +48,7 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
   onResetProgress,
   onNavigateReadiness,
   onNavigateMockInterview,
+  onNavigateInterviewPractice,
 }) => {
   const stats = calculateOverallProgress(progress);
 
@@ -54,7 +57,7 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
   const currentActiveUnitLock = currentActiveUnit ? getUnitLockReason(currentActiveUnit.id, progress) : { isLocked: false };
 
   // Map exam milestones after specific domains/phases
-  const getExamAfterPhase = (phaseNumber: number): Exam | undefined => {
+  const getExamAfterPhase = (phaseNumber: number): ExamSummary | undefined => {
     if (phaseNumber === 1) return CURRICULUM_EXAMS.find(e => e.id === "exam-foundations");
     if (phaseNumber === 2) return CURRICULUM_EXAMS.find(e => e.id === "exam-stl");
     if (phaseNumber === 3) return CURRICULUM_EXAMS.find(e => e.id === "exam-systems");
@@ -214,7 +217,13 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                 Want to evaluate your interview strengths? Try our real-time competency matrix or practice in a live interview screen.
               </span>
             </div>
-            <div className="flex items-center space-x-2 shrink-0 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {onNavigateInterviewPractice && (
+                <button type="button" id="open-interview-practice-btn" onClick={onNavigateInterviewPractice}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">
+                  Optional Interview Practice
+                </button>
+              )}
               {onNavigateReadiness && (
                 <button
                   type="button"

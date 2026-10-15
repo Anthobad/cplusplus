@@ -4,6 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "generate:curriculum": "node --import tsx scripts/generate-curriculum-assets.ts",
+    "check:bundle": "node scripts/check-frontend-bundle.mjs",
+    "postbuild": "npm run check:bundle",
+    "predev": "npm run generate:curriculum",
+    "prebuild": "npm run generate:curriculum",
+    "pretest": "npm run generate:curriculum",
+    "prelint": "npm run generate:curriculum",
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",

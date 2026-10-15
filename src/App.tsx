@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { UserProgress, Unit, Exam, MockInterviewReport } from "./types";
-import { ALL_UNITS, getUnitById, checkExamPrerequisites, getUnitLockReason } from "./data/curriculum";
-import { CURRICULUM_EXAMS } from "./data/exams";
+import React, { lazy, useState, useEffect } from "react";
+import type { UserProgress, MockInterviewReport } from "./types";
+import { ALL_UNITS, getUnitById, checkExamPrerequisites, getUnitLockReason } from "./data/curriculumSummary";
+import { CURRICULUM_EXAMS } from "./data/curriculumSummary";
 import { 
   getUserProgress, 
   saveUserProgress, 
@@ -13,32 +13,46 @@ import {
   initializeUserAuth,
   logOut
 } from "./lib/firebase";
+import { DeferredContent } from "./components/DeferredContent";
 import { Navbar } from "./components/Navbar";
 import { RoadmapView } from "./components/RoadmapView";
-import { UnitView } from "./components/UnitView";
-import { ExamView } from "./components/ExamView";
-import { MockInterviewView } from "./components/MockInterviewView";
-import { ReadinessDashboard } from "./components/ReadinessDashboard";
-import { CppDocsModal } from "./components/CppDocsModal";
-import { AiMentorDrawer } from "./components/AiMentorDrawer";
 import { AuthModal } from "./components/AuthModal";
 import { ResetProgressModal } from "./components/ResetProgressModal";
 import { CheckCircle2, Lock, Shield } from "lucide-react";
 import { type User } from "firebase/auth";
 import { AssessmentProvider, useAssessment } from "./lib/AssessmentContext";
 
+const InterviewPracticeView = lazy(() => import('./components/InterviewPracticeView'));
+
+const UnitView = lazy(() => import('./components/DomainUnitView'));
+
+const ExamView = lazy(() => import('./components/ExamScreen'));
+
+const MockInterviewView = lazy(() => import('./components/MockInterviewView').then(module => ({ default: module.MockInterviewView })));
+
+const ReadinessDashboard = lazy(() => import('./components/ReadinessDashboard').then(module => ({ default: module.ReadinessDashboard })));
+
+const CppDocsModal = lazy(() => import('./components/CppDocsModal').then(module => ({ default: module.CppDocsModal })));
+
+const AiMentorDrawer = lazy(() => import('./components/AiMentorDrawer').then(module => ({ default: module.AiMentorDrawer })));
+
 function AppContent() {
   // Navigation views
-  const [currentView, setCurrentView] = useState<"roadmap" | "unit" | "exam" | "mock-interview" | "readiness">("roadmap");
+  const [currentView, setCurrentView] = useState<"roadmap" | "unit" | "exam" | "mock-interview" | "readiness" | "interview-practice">("roadmap");
   const [selectedUnitId, setSelectedUnitId] = useState<string>("topic-1");
   const [selectedExamId, setSelectedExamId] = useState<string>("exam-foundations");
 
   // Modals & Drawers
+  const [hasOpenedDocs, setHasOpenedDocs] = useState(false);
+  const [hasOpenedMentor, setHasOpenedMentor] = useState(false);
   const [isDocsOpen, setIsDocsOpen] = useState<boolean>(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState<boolean>(false);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const openDocs = () => { setHasOpenedDocs(true); setIsDocsOpen(true); };
+  const openMentor = () => { setHasOpenedMentor(true); setIsAiChatOpen(true); };
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -319,8 +333,8 @@ function AppContent() {
         onNavigateHome={() => setCurrentView("roadmap")}
         onNavigateReadiness={() => setCurrentView("readiness")}
         onNavigateMockInterview={() => setCurrentView("mock-interview")}
-        onOpenDocs={() => setIsDocsOpen(true)}
-        onToggleAiChat={() => setIsAiChatOpen(!isAiChatOpen)}
+        onOpenDocs={openDocs}
+        onToggleAiChat={() => { setHasOpenedMentor(true); setIsAiChatOpen(!isAiChatOpen); }}
         onOpenAuth={() => setIsAuthOpen(true)}
         onSignOut={handleSignOut}
         isAiChatOpen={isAiChatOpen}
@@ -329,6 +343,7 @@ function AppContent() {
 
       {/* Main View Router */}
       <main className="flex-1">
+        <DeferredContent key={currentView} label={currentView === "unit" ? "lesson" : currentView.replaceAll("-", " ")}>
         {currentView === "roadmap" && (
           <RoadmapView
             progress={progress}
@@ -337,12 +352,17 @@ function AppContent() {
             onResetProgress={handleOpenResetModal}
             onNavigateReadiness={() => setCurrentView("readiness")}
             onNavigateMockInterview={() => setCurrentView("mock-interview")}
+            onNavigateInterviewPractice={() => setCurrentView("interview-practice")}
           />
+        )}
+
+        {currentView === "interview-practice" && (
+            <InterviewPracticeView onBack={() => setCurrentView("roadmap")} />
         )}
 
         {currentView === "unit" && activeUnit && (
           <UnitView
-            unit={activeUnit}
+            unitId={activeUnit.id}
             progress={progress}
             onBackToRoadmap={() => setCurrentView("roadmap")}
             onSelectUnit={handleSelectUnit}
@@ -350,19 +370,19 @@ function AppContent() {
             onCompleteUnit={handleCompleteUnit}
             onSaveQuizScore={handleSaveQuizScore}
             onSaveCodingResult={handleSaveCodingResult}
-            onOpenAiWithContext={() => setIsAiChatOpen(true)}
-            onOpenDocs={() => setIsDocsOpen(true)}
+            onOpenAiWithContext={openMentor}
+            onOpenDocs={openDocs}
           />
         )}
 
         {currentView === "exam" && activeExam && (
           <ExamView
-            exam={activeExam}
+            examId={activeExam.id}
             userId={userId}
             progress={progress}
             onSelectUnit={handleSelectUnit}
             onExitExam={() => setCurrentView("roadmap")}
-            onOpenDocs={() => setIsDocsOpen(true)}
+            onOpenDocs={openDocs}
             onExamAttemptSaved={(updated) => setProgress(updated)}
           />
         )}
@@ -383,20 +403,27 @@ function AppContent() {
             onStartMockInterview={() => setCurrentView("mock-interview")}
           />
         )}
+        </DeferredContent>
       </main>
 
       {/* C++ Standard Library Reference Modal (30+ comprehensive entries) */}
+      {hasOpenedDocs && <DeferredContent label="C++ reference" overlay active={isDocsOpen} onCancel={() => setIsDocsOpen(false)}>
       <CppDocsModal
         isOpen={isDocsOpen}
         onClose={() => setIsDocsOpen(false)}
       />
 
+      </DeferredContent>}
+
       {/* Gemini AI Systems Mentor Drawer */}
+      {hasOpenedMentor && <DeferredContent label="AI mentor" overlay active={isAiChatOpen} onCancel={() => setIsAiChatOpen(false)}>
       <AiMentorDrawer
         isOpen={isAiChatOpen}
         onClose={() => setIsAiChatOpen(false)}
         currentUnit={currentView === "unit" ? activeUnit : null}
       />
+
+      </DeferredContent>}
 
       {/* Authentication & Account Sync Modal */}
       <AuthModal
