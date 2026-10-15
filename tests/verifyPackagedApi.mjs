@@ -15,10 +15,9 @@ try {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({challengeId:'unknown-packaging-test',code:'int main(){}',mode:'assessment',requestAiFeedback:false}),
   });
-  assert.equal(submission.status, 200);
+  assert.equal(submission.status, 401);
   const result = await submission.json();
-  assert.equal(result.configurationError, true);
-  assert.equal(result.verified, false);
+  assert.equal(typeof result.error, 'string');
   console.log('Packaged Node ESM API: startup, health and evaluation routing passed.');
 } finally {
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { UserProgress, Unit, Exam, MockInterviewReport } from "./types";
-import { ALL_UNITS, getUnitById, checkExamPrerequisites, getUnitLockReason } from "./data/curriculum";
-import { CURRICULUM_EXAMS } from "./data/exams";
+import React, { lazy, useState, useEffect, useRef } from "react";
+import type { UserProgress, MockInterviewReport } from "./types";
+import { ALL_UNITS, getUnitById, checkExamPrerequisites, getUnitLockReason } from "./data/curriculumSummary";
+import { CURRICULUM_EXAMS } from "./data/curriculumSummary";
 import { 
   getUserProgress, 
-  saveUserProgress, 
-  saveQuizScore, 
+  completeUnit,
   resetUserProgress,
   DEFAULT_PROGRESS,
   getCleanGuestProgress,
@@ -13,32 +12,46 @@ import {
   initializeUserAuth,
   logOut
 } from "./lib/firebase";
+import { DeferredContent } from "./components/DeferredContent";
 import { Navbar } from "./components/Navbar";
 import { RoadmapView } from "./components/RoadmapView";
-import { UnitView } from "./components/UnitView";
-import { ExamView } from "./components/ExamView";
-import { MockInterviewView } from "./components/MockInterviewView";
-import { ReadinessDashboard } from "./components/ReadinessDashboard";
-import { CppDocsModal } from "./components/CppDocsModal";
-import { AiMentorDrawer } from "./components/AiMentorDrawer";
 import { AuthModal } from "./components/AuthModal";
 import { ResetProgressModal } from "./components/ResetProgressModal";
 import { CheckCircle2, Lock, Shield } from "lucide-react";
 import { type User } from "firebase/auth";
 import { AssessmentProvider, useAssessment } from "./lib/AssessmentContext";
 
+const InterviewPracticeView = lazy(() => import('./components/InterviewPracticeView'));
+
+const UnitView = lazy(() => import('./components/DomainUnitView'));
+
+const ExamView = lazy(() => import('./components/ExamScreen'));
+
+const MockInterviewView = lazy(() => import('./components/MockInterviewView').then(module => ({ default: module.MockInterviewView })));
+
+const ReadinessDashboard = lazy(() => import('./components/ReadinessDashboard').then(module => ({ default: module.ReadinessDashboard })));
+
+const CppDocsModal = lazy(() => import('./components/CppDocsModal').then(module => ({ default: module.CppDocsModal })));
+
+const AiMentorDrawer = lazy(() => import('./components/AiMentorDrawer').then(module => ({ default: module.AiMentorDrawer })));
+
 function AppContent() {
   // Navigation views
-  const [currentView, setCurrentView] = useState<"roadmap" | "unit" | "exam" | "mock-interview" | "readiness">("roadmap");
+  const [currentView, setCurrentView] = useState<"roadmap" | "unit" | "exam" | "mock-interview" | "readiness" | "interview-practice">("roadmap");
   const [selectedUnitId, setSelectedUnitId] = useState<string>("topic-1");
   const [selectedExamId, setSelectedExamId] = useState<string>("exam-foundations");
 
   // Modals & Drawers
+  const [hasOpenedDocs, setHasOpenedDocs] = useState(false);
+  const [hasOpenedMentor, setHasOpenedMentor] = useState(false);
   const [isDocsOpen, setIsDocsOpen] = useState<boolean>(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState<boolean>(false);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const openDocs = () => { setHasOpenedDocs(true); setIsDocsOpen(true); };
+  const openMentor = () => { setHasOpenedMentor(true); setIsAiChatOpen(true); };
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -46,6 +59,9 @@ function AppContent() {
   // Student progress state - default to guest mode to ensure signed-out state is cleanly reflected
   const [userId, setUserId] = useState<string>("guest");
   const [progress, setProgress] = useState<UserProgress>(getCleanGuestProgress());
+
+  const progressRef = useRef(progress);
+  useEffect(() => { progressRef.current = progress; }, [progress]);
 
   // Assessment Context
   const { assessmentMode, canUseAiMentor, isAssessmentActive } = useAssessment();
@@ -121,7 +137,7 @@ function AppContent() {
 
   // Handlers for progression with strict exam gating enforcement
   const handleSelectUnit = (unitId: string) => {
-    const lock = getUnitLockReason(unitId, progress);
+    const lock = getUnitLockReason(unitId, progressRef.current);
     if (lock.isLocked) {
       if (lock.reason === "milestone_exam" && lock.requiredExam) {
         const unit = getUnitById(unitId);
@@ -152,7 +168,7 @@ function AppContent() {
   const handleSelectExam = (examId: string) => {
     const exam = CURRICULUM_EXAMS.find(e => e.id === examId);
     if (exam) {
-      const prereq = checkExamPrerequisites(exam, progress);
+      const prereq = checkExamPrerequisites(exam, progressRef.current);
       if (!prereq.isUnlocked) {
         setToastMessage(
           `Exam Locked: Please complete all ${prereq.totalRequired} prerequisite units first (${prereq.completedCount}/${prereq.totalRequired} completed).`
@@ -167,74 +183,22 @@ function AppContent() {
   };
 
   const handleCompleteUnit = async (unitId: string) => {
-    if (!progress.completedUnitIds.includes(unitId)) {
-      const updatedCompleted = [...progress.completedUnitIds, unitId];
-      const nextUnitIndex = ALL_UNITS.findIndex(u => u.id === unitId) + 1;
-      const nextWeekNum = nextUnitIndex < ALL_UNITS.length
-        ? ALL_UNITS[nextUnitIndex].weekNumber
-        : (ALL_UNITS[ALL_UNITS.length - 1]?.weekNumber || 39);
-
-      const updatedProgress: UserProgress = {
-        ...progress,
-        completedUnitIds: updatedCompleted,
-        currentWeekNumber: nextWeekNum,
-        lastActiveTimestamp: Date.now()
-      };
-
-      setProgress(updatedProgress);
-      await saveUserProgress(updatedProgress, userId);
-    }
+    const updated = await completeUnit(unitId, userId);
+    progressRef.current = updated;
+    setProgress(updated);
   };
 
-  const handleSaveQuizScore = async (quizId: string, score: number, passed: boolean) => {
-    const updatedProgress = await saveQuizScore(userId, quizId, score, passed);
-    setProgress(updatedProgress);
+  const handleSaveQuizScore = async (_quizId: string, _score: number, _passed: boolean) => {
+    setProgress(await getUserProgress(userId));
   };
 
-  const handleSaveCodingResult = async (
-    challengeId: string,
-    result: { passed: boolean; score: number; verified: boolean; wasAssisted: boolean }
-  ) => {
-    const currentResults = progress.codingChallengeResults || {};
-    const updatedResults = {
-      ...currentResults,
-      [challengeId]: {
-        passed: result.passed,
-        score: result.score,
-        testsPassed: result.passed ? 1 : 0,
-        totalTests: 1,
-        timestamp: Date.now(),
-        verified: result.verified,
-        wasAssisted: result.wasAssisted,
-      },
-    };
-
-    const verifiedPassed = result.verified && result.passed
-      ? Array.from(new Set([...(progress.verifiedCodingPassed || []), challengeId]))
-      : (progress.verifiedCodingPassed || []);
-
-    const updatedProgress: UserProgress = {
-      ...progress,
-      codingChallengeResults: updatedResults,
-      verifiedCodingPassed: verifiedPassed,
-      totalCodingChallengesSolved: Object.values(updatedResults).filter((r: any) => r.passed).length,
-      lastActiveTimestamp: Date.now(),
-    };
-
-    setProgress(updatedProgress);
-    await saveUserProgress(updatedProgress, userId);
+  const handleSaveCodingResult = async (_challengeId: string, _result: unknown) => {
+    setProgress(await getUserProgress(userId));
   };
 
   const handleSaveMockReport = async (report: MockInterviewReport) => {
-    const currentReports = progress.mockInterviewReports || [];
-    const updatedProgress: UserProgress = {
-      ...progress,
-      mockInterviewReports: [report, ...currentReports],
-      lastActiveTimestamp: Date.now(),
-    };
-    setProgress(updatedProgress);
-    await saveUserProgress(updatedProgress, userId);
-    setToastMessage("Interview report saved successfully to your cloud profile.");
+    setProgress(await getUserProgress(userId));
+    setToastMessage("Interview report saved to your profile.");
     setTimeout(() => setToastMessage(null), 4000);
   };
 
@@ -319,8 +283,8 @@ function AppContent() {
         onNavigateHome={() => setCurrentView("roadmap")}
         onNavigateReadiness={() => setCurrentView("readiness")}
         onNavigateMockInterview={() => setCurrentView("mock-interview")}
-        onOpenDocs={() => setIsDocsOpen(true)}
-        onToggleAiChat={() => setIsAiChatOpen(!isAiChatOpen)}
+        onOpenDocs={openDocs}
+        onToggleAiChat={() => { setHasOpenedMentor(true); setIsAiChatOpen(!isAiChatOpen); }}
         onOpenAuth={() => setIsAuthOpen(true)}
         onSignOut={handleSignOut}
         isAiChatOpen={isAiChatOpen}
@@ -329,6 +293,7 @@ function AppContent() {
 
       {/* Main View Router */}
       <main className="flex-1">
+        <DeferredContent key={currentView} label={currentView === "unit" ? "lesson" : currentView.replaceAll("-", " ")}>
         {currentView === "roadmap" && (
           <RoadmapView
             progress={progress}
@@ -337,12 +302,17 @@ function AppContent() {
             onResetProgress={handleOpenResetModal}
             onNavigateReadiness={() => setCurrentView("readiness")}
             onNavigateMockInterview={() => setCurrentView("mock-interview")}
+            onNavigateInterviewPractice={() => setCurrentView("interview-practice")}
           />
+        )}
+
+        {currentView === "interview-practice" && (
+            <InterviewPracticeView onBack={() => setCurrentView("roadmap")} />
         )}
 
         {currentView === "unit" && activeUnit && (
           <UnitView
-            unit={activeUnit}
+            unitId={activeUnit.id}
             progress={progress}
             onBackToRoadmap={() => setCurrentView("roadmap")}
             onSelectUnit={handleSelectUnit}
@@ -350,19 +320,19 @@ function AppContent() {
             onCompleteUnit={handleCompleteUnit}
             onSaveQuizScore={handleSaveQuizScore}
             onSaveCodingResult={handleSaveCodingResult}
-            onOpenAiWithContext={() => setIsAiChatOpen(true)}
-            onOpenDocs={() => setIsDocsOpen(true)}
+            onOpenAiWithContext={openMentor}
+            onOpenDocs={openDocs}
           />
         )}
 
         {currentView === "exam" && activeExam && (
           <ExamView
-            exam={activeExam}
+            examId={activeExam.id}
             userId={userId}
             progress={progress}
             onSelectUnit={handleSelectUnit}
             onExitExam={() => setCurrentView("roadmap")}
-            onOpenDocs={() => setIsDocsOpen(true)}
+            onOpenDocs={openDocs}
             onExamAttemptSaved={(updated) => setProgress(updated)}
           />
         )}
@@ -383,20 +353,27 @@ function AppContent() {
             onStartMockInterview={() => setCurrentView("mock-interview")}
           />
         )}
+        </DeferredContent>
       </main>
 
       {/* C++ Standard Library Reference Modal (30+ comprehensive entries) */}
+      {hasOpenedDocs && <DeferredContent label="C++ reference" overlay active={isDocsOpen} onCancel={() => setIsDocsOpen(false)}>
       <CppDocsModal
         isOpen={isDocsOpen}
         onClose={() => setIsDocsOpen(false)}
       />
 
+      </DeferredContent>}
+
       {/* Gemini AI Systems Mentor Drawer */}
+      {hasOpenedMentor && <DeferredContent label="AI mentor" overlay active={isAiChatOpen} onCancel={() => setIsAiChatOpen(false)}>
       <AiMentorDrawer
         isOpen={isAiChatOpen}
         onClose={() => setIsAiChatOpen(false)}
         currentUnit={currentView === "unit" ? activeUnit : null}
       />
+
+      </DeferredContent>}
 
       {/* Authentication & Account Sync Modal */}
       <AuthModal

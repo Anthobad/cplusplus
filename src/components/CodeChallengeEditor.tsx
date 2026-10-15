@@ -1,3 +1,4 @@
+import { authenticatedFetch } from "../lib/authenticatedFetch";
 import React, { useState } from "react";
 import {
   Play,
@@ -73,7 +74,7 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
         expectedBehavior: challenge.expectedBehavior,
       };
 
-      const response = await fetch("/api/evaluate-code", {
+      const response = await authenticatedFetch("/api/evaluate-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(submission),

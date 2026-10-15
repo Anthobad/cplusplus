@@ -18,10 +18,13 @@ import {
   HelpCircle
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { Exam, ExamAttempt, UserProgress } from "../types";
-import { saveExamAttempt } from "../lib/firebase";
-import { checkExamPrerequisites, getFirstUnitAfterExam } from "../data/curriculum";
-import { generateRandomizedExam, getExamPoolStatistics } from "../data/examQuestionPools";
+import { Exam, ExamAttempt, UserProgress, CodeEvaluationResult } from "../types";
+import { gradeExam } from '../lib/examGrading';
+import { EXPLANATION_CRITERIA, type ExplanationAssessment } from '../lib/explanationRubric';
+import { cacheTrustedExam } from "../lib/firebase";
+import { trustedRequest } from "../lib/authenticatedFetch";
+import { checkExamPrerequisites, getFirstUnitAfterExam } from "../data/curriculumSummary";
+import { getExamPoolStatistics } from "../data/examQuestionPools";
 import { useAssessment } from "../lib/AssessmentContext";
 
 interface ExamViewProps {
@@ -45,20 +48,38 @@ export const ExamView: React.FC<ExamViewProps> = ({
 }) => {
   // Prerequisite check
   const prereqStatus = progress ? checkExamPrerequisites(exam, progress) : { isUnlocked: true, totalRequired: 0, completedCount: 0, missingUnits: [], firstMissingUnit: undefined };
-  const isPrereqLocked = !prereqStatus.isUnlocked;
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const isPrereqLocked = !prereqStatus.isUnlocked || !sessionId;
 
   // Active randomized exam state
-  const [activeExam, setActiveExam] = useState<Exam>(() => generateRandomizedExam(exam));
+  const [activeExam, setActiveExam] = useState<Exam>(exam);
+  const submissionVersion = useRef(0);
   const poolStats = getExamPoolStatistics(exam.id);
   const { setAssessmentMode, setAssessmentTitle } = useAssessment();
 
   // Sync if parent exam changes
   useEffect(() => {
-    setActiveExam(generateRandomizedExam(exam));
+    submissionVersion.current++;
+    void startServerExam(true);
+    setAnswers({});
+    setCodingResults({});
+    setCodingPoints({});
+    setExplanationResults({});
+    setExplanationPoints({});
+    setSubmissionError(null);
+    setExamSubmitted(false);
+    setIsPassed(false);
+    setExamScore(0);
+    setSecondsRemaining(exam.durationMinutes * 60);
+    submittingRef.current = false;
+    setIsSubmitting(false);
+    return () => { submissionVersion.current++; };
   }, [exam.id]);
 
   // Timer state
   const [secondsRemaining, setSecondsRemaining] = useState(exam.durationMinutes * 60);
+  const timeExpired = secondsRemaining === 0;
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -86,25 +107,29 @@ export const ExamView: React.FC<ExamViewProps> = ({
   const [examScore, setExamScore] = useState(0);
   const [isPassed, setIsPassed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const submitLatest = useRef<() => Promise<void>>(async () => {});
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [codingResults, setCodingResults] = useState<Record<string, CodeEvaluationResult>>({});
+  const [codingPoints, setCodingPoints] = useState<Record<string, number>>({});
+  const [explanationResults, setExplanationResults] = useState<Record<string, ExplanationAssessment>>({});
+  const [explanationPoints, setExplanationPoints] = useState<Record<string, number>>({});
   const [poolShuffledNotice, setPoolShuffledNotice] = useState(false);
 
   // Countdown timer effect
   useEffect(() => {
-    if (examSubmitted || isPrereqLocked) return;
+    if (examSubmitted || isPrereqLocked || timeExpired) return;
 
     const timer = setInterval(() => {
-      setSecondsRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmitExam();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setSecondsRemaining(prev => Math.max(0, prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [examSubmitted]);
+  }, [examSubmitted, isPrereqLocked, exam.id, timeExpired]);
+
+  useEffect(() => {
+    if (secondsRemaining === 0 && !examSubmitted && !isPrereqLocked) void submitLatest.current();
+  }, [secondsRemaining, examSubmitted, isPrereqLocked]);
 
   // Tab switch and blur monitoring ("Browser Lock")
   useEffect(() => {
@@ -139,62 +164,60 @@ export const ExamView: React.FC<ExamViewProps> = ({
     }
   };
 
+  async function startServerExam(resetClock: boolean) {
+    const version = ++submissionVersion.current;
+    setSessionId(null); setSessionLoading(true); setSubmissionError(null);
+    try {
+      const session = await trustedRequest<{ sessionId: string; exam: Exam }>("/api/assessment/exam/start", { examId: exam.id });
+      if (version !== submissionVersion.current) return;
+      setActiveExam(session.exam); setSessionId(session.sessionId);
+      setAnswers({});
+      if (resetClock) setSecondsRemaining(session.exam.durationMinutes * 60);
+    } catch (error) {
+      if (version === submissionVersion.current) setSubmissionError(error instanceof Error ? error.message : "Exam session unavailable.");
+    } finally { if (version === submissionVersion.current) setSessionLoading(false); }
+  }
   const handleShufflePool = () => {
-    if (examSubmitted) return;
-    const freshExam = generateRandomizedExam(exam);
-    setActiveExam(freshExam);
-    setAnswers({});
+    if (examSubmitted || submittingRef.current || timeExpired || sessionLoading) return;
+    void startServerExam(false);
     setPoolShuffledNotice(true);
     setTimeout(() => setPoolShuffledNotice(false), 3000);
   };
 
   const handleAnswerChange = (questionId: string, val: any) => {
-    if (examSubmitted) return;
+    if (examSubmitted || submittingRef.current || timeExpired) return;
     setAnswers(prev => ({ ...prev, [questionId]: val }));
   };
 
   const handleSubmitExam = async () => {
+    if (examSubmitted || isPrereqLocked || submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
-
-    let totalPointsAwarded = 0;
-    const totalPointsPossible = activeExam.questions.reduce((acc, q) => acc + q.points, 0);
-
-    activeExam.questions.forEach(q => {
-      const studentAns = answers[q.id];
-
-      if (q.type === "mcq") {
-        if (studentAns === q.correctAnswer) {
-          totalPointsAwarded += q.points;
-        }
-      } else if (q.type === "true-false") {
-        if (studentAns === q.correctAnswer) {
-          totalPointsAwarded += q.points;
-        }
-      } else {
-        // Open-ended / code questions: give points based on keyword matching
-        if (typeof studentAns === "string" && studentAns.trim().length > 10) {
-          if (q.rubricKeywords) {
-            const matches = q.rubricKeywords.filter(kw =>
-              studentAns.toLowerCase().includes(kw.toLowerCase())
-            );
-            const ratio = matches.length / q.rubricKeywords.length;
-            totalPointsAwarded += Math.round(q.points * Math.max(0.4, Math.min(1.0, ratio)));
-          } else {
-            totalPointsAwarded += Math.round(q.points * 0.7);
-          }
-        }
-      }
-    });
-
-    const scaledScore = Math.round((totalPointsAwarded / (totalPointsPossible || 100)) * 100);
-    const passingThreshold = activeExam.passingScore || 50;
-    // Strict requirement: passed can ONLY be true if scaledScore >= passingThreshold (>= 50)
-    const passed = scaledScore >= passingThreshold;
+    setSubmissionError(null);
+    const submittedAnswers = { ...answers };
+    const version = submissionVersion.current;
+    let graded: Awaited<ReturnType<typeof gradeExam>>;
+    let outcome: { grading: typeof graded; progress: UserProgress; attempt: ExamAttempt };
+    try {
+      outcome = await trustedRequest("/api/assessment/exam/submit", { sessionId, answers: submittedAnswers, tabSwitchWarnings: tabSwitches });
+      graded = outcome.grading;
+    } catch (error) {
+      if (version !== submissionVersion.current) return;
+      setSubmissionError(error instanceof Error ? error.message : 'Evaluation failed. Your answers have been retained; retry submission.');
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      return;
+    }
+    if (version !== submissionVersion.current) return;
+    const { score: scaledScore, passed } = graded;
+    setCodingResults(graded.codingResults);
+    setCodingPoints(graded.codingPoints);
+    setExplanationResults(graded.explanationResults);
+    setExplanationPoints(graded.explanationPoints);
 
     setExamScore(scaledScore);
     setIsPassed(passed);
     setExamSubmitted(true);
-    setIsSubmitting(false);
 
     if (passed) {
       confetti({
@@ -204,36 +227,26 @@ export const ExamView: React.FC<ExamViewProps> = ({
       });
     }
 
-    // Save to Firebase database and update progress
-    const attempt: ExamAttempt = {
-      examId: activeExam.id,
-      examTitle: activeExam.title,
-      score: scaledScore,
-      passed: passed,
-      timestamp: Date.now(),
-      tabSwitchWarnings: tabSwitches,
-      answers: answers,
-      generatedQuestions: activeExam.questions
-    };
-
-    try {
-      const updated = await saveExamAttempt(attempt, userId);
-      if (onExamAttemptSaved) {
-        onExamAttemptSaved(updated);
-      }
-    } catch (e) {
-      console.warn("Could not persist exam attempt to Firebase:", e);
-    }
+    const updated = cacheTrustedExam(outcome.attempt, outcome.progress, userId);
+    onExamAttemptSaved?.(updated);
+    submittingRef.current = false;
+    setIsSubmitting(false);
   };
+  submitLatest.current = handleSubmitExam;
 
   const handleRetakeExam = () => {
+    if (submittingRef.current) return;
     // Generate fresh randomized questions from pool for retake!
-    const freshExam = generateRandomizedExam(exam);
-    setActiveExam(freshExam);
+    void startServerExam(true);
     setExamSubmitted(false);
     setIsPassed(false);
     setExamScore(0);
     setAnswers({});
+    setCodingResults({});
+    setCodingPoints({});
+    setExplanationResults({});
+    setExplanationPoints({});
+    setSubmissionError(null);
     setSecondsRemaining(activeExam.durationMinutes * 60);
     setTabSwitches(0);
     setShowBlurWarning(false);
@@ -246,8 +259,14 @@ export const ExamView: React.FC<ExamViewProps> = ({
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  if (sessionLoading || !sessionId) return <div className="p-8 text-slate-200 space-y-4">
+    <p role={sessionLoading ? "status" : "alert"}>{sessionLoading ? "Starting secure exam session…" : submissionError || "Exam session unavailable."}</p>
+    {!sessionLoading && <button type="button" className="text-blue-300 underline mr-4" onClick={() => void startServerExam(true)}>Retry exam session</button>}
+    <button type="button" className="text-blue-300 underline" onClick={onExitExam}>Curriculum Roadmap</button>
+  </div>;
+
   if (isPrereqLocked) {
-    return (
+  return (
       <div 
         id="locked-exam-gate-screen"
         className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6"
@@ -347,6 +366,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
           {!examSubmitted && (
             <button
               onClick={handleShufflePool}
+              disabled={isSubmitting || timeExpired}
               className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition-colors"
               title="Sample a different randomized set of questions from the pool"
             >
@@ -447,6 +467,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
           {!examSubmitted && (
             <button
               onClick={handleShufflePool}
+              disabled={isSubmitting || timeExpired}
               className="shrink-0 self-start sm:self-center px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-colors border border-slate-700 flex items-center space-x-1.5 text-xs"
             >
               <Shuffle className="h-3 w-3 text-indigo-400" />
@@ -603,7 +624,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
                         <button
                           key={optIdx}
                           onClick={() => handleAnswerChange(q.id, optIdx)}
-                          disabled={examSubmitted}
+                          disabled={examSubmitted || isSubmitting || timeExpired}
                           className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${style}`}
                         >
                           <span>{opt}</span>
@@ -636,7 +657,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
                         <button
                           key={val.toString()}
                           onClick={() => handleAnswerChange(q.id, val)}
-                          disabled={examSubmitted}
+                          disabled={examSubmitted || isSubmitting || timeExpired}
                           className={`flex-1 p-3 rounded-xl border text-xs font-semibold text-center transition-all ${style}`}
                         >
                           {val ? "True" : "False"}
@@ -650,14 +671,54 @@ export const ExamView: React.FC<ExamViewProps> = ({
                   q.type === "code-analysis" ||
                   q.type === "coding-challenge") && (
                   <div className="pt-1">
+                    {q.type === 'coding-challenge' && (
+                      <p className="text-xs text-blue-300 mb-3">{q.codingInstructions} Standard C++ headers are supplied by the evaluator. Coding points are based on public and hidden tests.</p>
+                    )}
+                    {q.type !== 'coding-challenge' && (
+                      <div className="text-xs text-slate-300 mb-3 space-y-1">
+                        <p>Explanations are assessed by an AI-assisted rubric, not keyword matching. Concise, correct paraphrases are welcome.</p>
+                        {EXPLANATION_CRITERIA.map(criterion => <p key={criterion.id}>{criterion.label} ({criterion.weight}%): {criterion.description}</p>)}
+                        <p>Each criterion earns 0 (missing/incorrect), 1 (partial), or 2 (sufficient). An incorrect or missing central rule, or an explicit major contradiction, caps the explanation at 25%; partial central correctness caps it at 75%.</p>
+                      </div>
+                    )}
                     <textarea
                       rows={6}
-                      value={studentAns || ""}
+                      aria-label={q.type === 'coding-challenge' ? `C++ answer ${idx + 1}` : `Explanation answer ${idx + 1}`}
+                      value={studentAns ?? (q.type === 'coding-challenge' ? q.initialCode || '' : '')}
                       onChange={e => handleAnswerChange(q.id, e.target.value)}
-                      disabled={examSubmitted}
+                      disabled={examSubmitted || isSubmitting || timeExpired}
                       placeholder="Write your explanation or C++ implementation here..."
                       className="w-full p-4 font-mono text-xs bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 disabled:opacity-80"
                     />
+                  </div>
+                )}
+
+                {examSubmitted && q.type === 'coding-challenge' && codingResults[q.id] && (
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
+                    <p>{codingPoints[q.id]} / {q.points} coding points — {codingResults[q.id].testsPassed} / {codingResults[q.id].totalTests} tests passed.</p>
+                    {codingResults[q.id].compileError && <pre className="whitespace-pre-wrap text-red-300">{codingResults[q.id].compileError}</pre>}
+                    {codingResults[q.id].runtimeError && <p className="text-red-300">{codingResults[q.id].runtimeError}</p>}
+                    {codingResults[q.id].testResults.filter(test => !test.isHidden && !test.passed && test.error).map((test, index) => (
+                      <p key={index} className="text-red-300">{test.testId || `Public test ${index + 1}`}: {test.error}</p>
+                    ))}
+                  </div>
+                )}
+
+                {examSubmitted && explanationResults[q.id] && (
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-3">
+                    <p>{explanationPoints[q.id]} / {q.points} explanation points — {explanationResults[q.id].evaluatedBy === 'unanswered' ? 'Unanswered' : 'AI-assisted rubric assessment'}</p>
+                    <p>{explanationResults[q.id].feedback}</p>
+                    {explanationResults[q.id].criteria.map(criterion => (
+                      <div key={criterion.id} className="space-y-1">
+                        <p className="font-semibold">{EXPLANATION_CRITERIA.find(c => c.id === criterion.id)?.label}: {criterion.level} / 2</p>
+                        {criterion.evidence && <blockquote className="border-l-2 border-slate-600 pl-2 whitespace-pre-wrap">{criterion.evidence}</blockquote>}
+                        <p>{criterion.feedback}</p>
+                      </div>
+                    ))}
+                    {explanationResults[q.id].fundamentalError.present && <div className="text-red-300 space-y-1">
+                      <p>Major misconception: {explanationResults[q.id].fundamentalError.feedback}</p>
+                      <blockquote className="border-l-2 border-red-600 pl-2">{explanationResults[q.id].fundamentalError.evidence}</blockquote>
+                    </div>}
                   </div>
                 )}
 
@@ -674,6 +735,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
         </div>
 
         {/* Submit Action Area */}
+        {submissionError && <p role="alert" className="p-4 rounded-xl bg-red-950/40 border border-red-500/40 text-red-200 text-sm">{submissionError}</p>}
         {!examSubmitted && (
           <div className="pt-4 pb-12 flex items-center justify-between border-t border-slate-800">
             <p className="text-xs text-slate-400">
@@ -685,7 +747,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
               className="px-6 py-3 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/30 transition-all flex items-center space-x-2"
             >
               {isSubmitting ? <Sparkles className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-              <span>Submit Examination & Finalize Score</span>
+              <span>{isSubmitting ? 'Evaluating code and explanations…' : 'Submit Examination & Finalize Score'}</span>
             </button>
           </div>
         )}

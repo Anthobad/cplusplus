@@ -237,6 +237,9 @@ export interface MockInterviewReport {
 }
 
 export interface UserProgress {
+  integrityVersion?: number;
+  legacyBaseline?: boolean;
+  hardenedAt?: number;
   userId?: string;
   unlockedUnits: string[];
   completedUnits: string[];
@@ -308,6 +311,8 @@ export interface ExamQuestionDetail {
   rubricKeywords?: string[];
   // For coding questions in exams:
   initialCode?: string;
+  codingChallengeId?: string;
+  codingInstructions?: string;
   testCases?: TestCase[];
   driverCode?: string;
 }
@@ -338,6 +343,7 @@ export interface Exam {
 export type ExamInstance = Exam;
 
 export interface ExamAttempt {
+  integritySource?: 'server-v2';
   id?: string;
   examId: string;
   examTitle?: string;
@@ -356,6 +362,8 @@ export interface ExamAttempt {
     explanation?: number;
   };
   generatedQuestions?: ExamQuestionDetail[];
+  codingResults?: Record<string, CodeEvaluationResult>;
+  explanationResults?: Record<string, import('./lib/explanationRubric').ExplanationAssessment>;
   completedAt?: string;
   verified?: boolean;
 }

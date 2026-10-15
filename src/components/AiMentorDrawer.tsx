@@ -1,3 +1,4 @@
+import { authenticatedFetch } from "../lib/authenticatedFetch";
 import React, { useState, useRef, useEffect } from "react";
 import { X, Send, Brain, Bot, User, Sparkles, AlertCircle, Trash2 } from "lucide-react";
 import Markdown from "react-markdown";
@@ -14,7 +15,7 @@ interface Message {
 interface AiMentorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  currentUnit?: Unit | null;
+  currentUnit?: Pick<Unit, "title" | "weekNumber" | "topics"> | null;
   isDisabledDueToExamOrQuiz?: boolean;
 }
 
@@ -61,7 +62,7 @@ export const AiMentorDrawer: React.FC<AiMentorDrawerProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await authenticatedFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
