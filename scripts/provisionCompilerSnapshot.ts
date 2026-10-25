@@ -1,19 +1,13 @@
 /** Explicit maintenance command: only trusted dependencies/infrastructure enter this snapshot. */
 import { Sandbox, Snapshot } from '@vercel/sandbox';
 import { config } from 'dotenv';
-import { readFile, writeFile } from 'node:fs/promises';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { writeFile } from 'node:fs/promises';
+import { confirmHobbyProject } from './sandboxMaintenance.js';
 import { compilerVersion, provisionCommand, provisioningPolicy, environmentFiles, setupCommand, snapshotExpirationMs, snapshotMaxAgeMs } from '../server/sandbox/compilerEnvironment.js';
 import { compilerSnapshot } from '../server/sandbox/compilerSnapshot.js';
 
 config({ path: '.env.local', quiet: true });
-const project = JSON.parse(await readFile('.vercel/project.json', 'utf8'));
-if (project.projectName !== 'cplusplus') throw new Error('Expected the existing cplusplus project. Run vercel link for anthobads-projects/cplusplus.');
-const { stdout } = await promisify(execFile)('npx', ['vercel@latest', 'api', `/v2/teams/${project.orgId}`, '--scope', 'anthobads-projects'], { maxBuffer: 1024 * 1024 });
-const response = JSON.parse(stdout);
-const team = response.team || response;
-if (team.billing?.plan !== 'hobby') throw new Error('Snapshot creation is restricted to the confirmed free Hobby account. No paid resources were created.');
+await confirmHobbyProject();
 if (compilerSnapshot?.version === compilerVersion && Date.now() - compilerSnapshot.createdAt < snapshotMaxAgeMs) {
   try {
     const existing = await Snapshot.get({ snapshotId: compilerSnapshot.snapshotId });
@@ -38,6 +32,8 @@ const builder = await Sandbox.create({ image: 'vercel/sandbox/ubuntu:latest', pe
 try {
   const provision = await builder.runCommand({ cmd: 'sudo', args: ['timeout', '--kill-after=2s', '90s', 'sh', '-c', provisionCommand], signal: AbortSignal.timeout(95000) });
   if (provision.exitCode !== 0) throw new Error('Trusted compiler provisioning failed');
+  const compilerIdentity = (await provision.stdout()).split('\n').find(line => /^g\+\+ .*\b15\./.test(line));
+  if (!compilerIdentity) throw new Error('Expected GCC 15 was not confirmed; no snapshot will be published.');
   await builder.update({ networkPolicy: 'deny-all' });
   await builder.writeFiles(environmentFiles());
   const protectedFiles = await builder.runCommand('sudo', ['sh', '-c', setupCommand]);
@@ -46,7 +42,7 @@ try {
   const snapshot = await builder.snapshot({ expiration: snapshotExpirationMs, signal: AbortSignal.timeout(30000) });
   const metadata = { snapshotId: snapshot.snapshotId, version: compilerVersion, createdAt: Date.now() };
   await writeFile('server/sandbox/compilerSnapshot.ts', '// Generated trusted compiler snapshot; contains no credentials or submission data.\nexport const compilerSnapshot = ' + JSON.stringify(metadata, null, 2) + ';\n');
-  console.log(JSON.stringify({ ...metadata, sizeBytes: snapshot.sizeBytes, expiresAt: snapshot.expiresAt, elapsedMs: performance.now() - started, plan: 'hobby', idleSandbox: false }));
+  console.log(JSON.stringify({ ...metadata, compilerIdentity, sizeBytes: snapshot.sizeBytes, expiresAt: snapshot.expiresAt, elapsedMs: performance.now() - started, plan: 'hobby', idleSandbox: false }));
 } finally {
   // snapshot() stops the builder; stop is still awaited if any prior step fails.
   await builder.stop();

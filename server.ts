@@ -16,6 +16,7 @@ import { HttpError } from "./server/security/store.js";
 import { getExplanationQuestion } from "./server/explanationRegistry.js";
 import { createSecureEvaluator } from './server/security/evaluator.js';
 import { randomUUID } from 'node:crypto';
+import { submissionPerformance, measureSubmissionPhase, submissionTimingHeaders } from './server/submissionPerformance.js';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: "256kb" }));
+app.use('/api/evaluate-code', submissionPerformance);
 const access = createAccess(firestoreStore, verifyFirebaseToken);
 const trustedProgress = createProgressService(firestoreStore);
 const secureEvaluate = createSecureEvaluator();
@@ -61,11 +63,11 @@ async function generateContentWithResilience(
 
   for (const model of RESILIENT_MODELS) {
     try {
-      const response = await ai.models.generateContent({
+      const response = await measureSubmissionPhase(`ai_${model.replace(/[^a-z0-9]/gi, '_')}`, () => ai.models.generateContent({
         model,
         contents: params.contents,
         config: params.config,
-      });
+      }));
       if (response && response.text) {
         return response;
       }
@@ -281,14 +283,15 @@ Provide qualitative code review feedback in JSON format:
 // Authentication and transactional quotas apply before any compiler/sandbox work.
 app.post("/api/evaluate-code", access.authenticate, access.limited('execution', async (req, res) => {
   validateCode(req.body);
-  const { status, result } = await secureEvaluate(req.body);
-  if (status === 200 && result.passed) await trustedProgress.coding(res.locals.principal, req.body.challengeId, result);
+  const { status, result } = await measureSubmissionPhase('evaluation', () => secureEvaluate(req.body));
+  if (status === 200 && result.passed) await measureSubmissionPhase('progressPersistence', () => trustedProgress.coding(res.locals.principal, req.body.challengeId, result));
   if (req.body.requestAiFeedback !== false && result.compiled) {
     const challenge = getTrustedChallenge(req.body.challengeId);
-    const feedback = await getQualitativeAIFeedback(getAIClient(), req.body.studentCode || req.body.code,
-      challenge?.title || "C++ Coding Challenge", challenge?.title || "Correct implementation", result);
+    const feedback = await measureSubmissionPhase('aiFeedback', () => getQualitativeAIFeedback(getAIClient(), req.body.studentCode || req.body.code,
+      challenge?.title || "C++ Coding Challenge", challenge?.title || "Correct implementation", result));
     if (feedback) result.aiFeedback = feedback;
   }
+  submissionTimingHeaders(res);
   res.status(status).json(result);
 }));
 

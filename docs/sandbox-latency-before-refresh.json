@@ -1,0 +1,108 @@
+{
+  "measuredAt": "2026-10-25T21:12:06.508Z",
+  "location": "local trusted evaluator invoking real Vercel sandboxes; excludes Firebase/API/AI/browser latency",
+  "records": [
+    {
+      "label": "before-refresh",
+      "sample": 1,
+      "endToEndMs": 26262.852407,
+      "timing": {
+        "phases": {
+          "sandboxCreation": 595.451791,
+          "aptProvisioning": 19205.157477,
+          "networkLockdown": 2161.518385000003,
+          "infrastructureUpload": 314.17326200000025,
+          "supervisorSetup": 662.6570419999989,
+          "commandStart": 349.3815620000023,
+          "sourceUpload": 770.3647170000004,
+          "supervisorWait": 672.1192579999988,
+          "resultFetch": 241.69046399999934,
+          "cleanup": 1288.7110380000013
+        },
+        "sdkCalls": 11,
+        "snapshotHit": false,
+        "recovery": "snapshot_version_or_age_mismatch",
+        "totalMs": 26262.192206000003,
+        "compilationMs": 673.2283800000048,
+        "executionMs": 36.673633999996014
+      },
+      "status": 200,
+      "verified": true,
+      "testsPassed": 5,
+      "totalTests": 5,
+      "cleanup": [
+        {
+          "status": "stopped"
+        }
+      ]
+    },
+    {
+      "label": "before-refresh",
+      "sample": 2,
+      "endToEndMs": 21256.989208000003,
+      "timing": {
+        "phases": {
+          "sandboxCreation": 374.22068299999955,
+          "aptProvisioning": 15498.523989999998,
+          "networkLockdown": 1013.3803980000012,
+          "infrastructureUpload": 398.72399700000096,
+          "supervisorSetup": 423.403664999998,
+          "commandStart": 223.40824499999871,
+          "sourceUpload": 823.4885900000008,
+          "supervisorWait": 605.1592460000029,
+          "resultFetch": 284.77546599999914,
+          "cleanup": 1611.1990349999978
+        },
+        "sdkCalls": 11,
+        "snapshotHit": false,
+        "recovery": "snapshot_version_or_age_mismatch",
+        "totalMs": 21256.878215,
+        "compilationMs": 429.2984949999976,
+        "executionMs": 26.794145000003766
+      },
+      "status": 200,
+      "verified": true,
+      "testsPassed": 5,
+      "totalTests": 5,
+      "cleanup": [
+        {
+          "status": "stopped"
+        }
+      ]
+    },
+    {
+      "label": "before-refresh",
+      "sample": 3,
+      "endToEndMs": 27047.264920999995,
+      "timing": {
+        "phases": {
+          "sandboxCreation": 781.3768679999994,
+          "aptProvisioning": 18963.467134,
+          "networkLockdown": 1072.35484,
+          "infrastructureUpload": 619.1717440000066,
+          "supervisorSetup": 496.21466700000747,
+          "commandStart": 201.08839699999953,
+          "sourceUpload": 1058.32646500002,
+          "supervisorWait": 712.1843930000032,
+          "resultFetch": 301.3365080000076,
+          "cleanup": 2841.254903000008
+        },
+        "sdkCalls": 11,
+        "snapshotHit": false,
+        "recovery": "snapshot_version_or_age_mismatch",
+        "totalMs": 27047.06548399999,
+        "compilationMs": 512.0079989999979,
+        "executionMs": 28.687818000008747
+      },
+      "status": 200,
+      "verified": true,
+      "testsPassed": 5,
+      "totalTests": 5,
+      "cleanup": [
+        {
+          "status": "stopped"
+        }
+      ]
+    }
+  ]
+}

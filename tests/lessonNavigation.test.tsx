@@ -64,6 +64,18 @@ afterEach(async () => {
 });
 
 describe('Lesson navigation state', () => {
+  it('keeps practice AI review enabled by default but allows a tests-only submission', async () => {
+    await mount();
+    await click('C++ Coding Challenge');
+    await click('Run Tests');
+    expect(JSON.parse(vi.mocked(authenticatedFetch).mock.calls[0][1]!.body as string).requestAiFeedback).toBe(true);
+    const checkbox = renderer.root.findByType('input');
+    await act(async () => checkbox.props.onChange({ target: { checked: false } }));
+    await click('Run Tests');
+    const request = JSON.parse(vi.mocked(authenticatedFetch).mock.calls[1][1]!.body as string);
+    expect(request).toMatchObject({ mode: 'practice', requestAiFeedback: false });
+    expect(text(renderer.root)).toContain('Practice Tests Passed!');
+  });
   it('keys the coding editor independently when an existing UnitView receives a new challenge', async () => {
     const { navigate } = await mount(units[0].id, true);
     await click('C++ Coding Challenge');

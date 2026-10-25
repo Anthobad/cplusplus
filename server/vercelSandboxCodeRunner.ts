@@ -3,6 +3,7 @@ import type { CodeRunner, RunnerRequest, RunnerResult } from './codeRunner.js';
 import { compareOutputs } from './codeRunner.js';
 import { compilerVersion, environmentFiles, provisionCommand, provisioningPolicy, setupCommand, snapshotMaxAgeMs } from './sandbox/compilerEnvironment.js';
 import { compilerSnapshot } from './sandbox/compilerSnapshot.js';
+import { recordRunnerTiming } from './submissionPerformance.js';
 export { provisionCommand } from './sandbox/compilerEnvironment.js';
 
 export const SANDBOX_LIMITS = {
@@ -20,6 +21,8 @@ export interface ProcessOutcome {
 export interface RunnerTiming {
   phases: Record<string, number>; sdkCalls: number; snapshotHit: boolean;
   recovery?: string; totalMs: number; compilationMs?: number; executionMs?: number;
+  snapshotSelection?: { configured: boolean; snapshotId?: string; versionMatches: boolean; ageMs?: number; maxAgeMs: number };
+  cleanupSucceeded?: boolean;
 }
 
 // Dependency injection keeps orchestration tests independent of Vercel credentials.
@@ -72,11 +75,15 @@ export class VercelSandboxCodeRunner implements CodeRunner {
       finally { timing.phases[phase] = (timing.phases[phase] || 0) + performance.now() - t; }
     };
     const configured = this.options.snapshot === undefined ? compilerSnapshot : this.options.snapshot;
+    timing.snapshotSelection = { configured: Boolean(configured), snapshotId: configured?.snapshotId,
+      versionMatches: configured?.version === compilerVersion, ageMs: configured ? Date.now() - configured.createdAt : undefined,
+      maxAgeMs: snapshotMaxAgeMs };
     const candidate = configured && configured.version === compilerVersion && Date.now() - configured.createdAt < snapshotMaxAgeMs ? configured : null;
     const common = { persistent: false, resources: { vcpus: 1 }, timeout: SANDBOX_LIMITS.lifetimeMs, signal: AbortSignal.timeout(30000) };
     let sandbox: SandboxClient | undefined;
     try {
       if (candidate) {
+        const restorationStarted = performance.now();
         try {
           sandbox = await timed('sandboxCreation', () => this.createSandbox({ ...common, source: { type: 'snapshot', snapshotId: candidate.snapshotId }, networkPolicy: 'deny-all' }));
           timing.snapshotHit = true;
@@ -86,7 +93,7 @@ export class VercelSandboxCodeRunner implements CodeRunner {
           const code = (error as { json?: { error?: { code?: string } } }).json?.error?.code;
           if (!['snapshot_not_found', 'snapshot_expired'].includes(code || '')) throw error;
           timing.recovery = code;
-        }
+        } finally { timing.phases.snapshotRestoration = performance.now() - restorationStarted; }
       } else timing.recovery = configured ? 'snapshot_version_or_age_mismatch' : 'snapshot_not_configured';
       if (!sandbox) {
         sandbox = await timed('sandboxCreation', () => this.createSandbox({ ...common, image: 'vercel/sandbox/ubuntu:latest', networkPolicy: provisioningPolicy }));
@@ -147,12 +154,18 @@ export class VercelSandboxCodeRunner implements CodeRunner {
         testsPassed, testResults, executionTimeMs, compilationTimeMs: compilation.executionTimeMs,
         verified: false }; // Only evaluateSubmission can grant verified progress.
     } finally {
-      try { if (sandbox) await timed('cleanup', () => sandbox!.stop()); }
+      try {
+        if (sandbox) {
+          try { await timed('cleanup', () => sandbox!.stop()); timing.cleanupSucceeded = true; }
+          catch (error) { timing.cleanupSucceeded = false; throw error; }
+        }
+      }
       finally {
         timing.totalMs = performance.now() - started;
+        const requestId = recordRunnerTiming(timing);
         // Operational metrics contain no code, stdin, answers, user identifiers or credentials.
         if (this.options.onTiming) this.options.onTiming(timing);
-        else console.info(JSON.stringify({ event: 'cpp_runner_timing', ...timing }));
+        else console.info(JSON.stringify({ event: 'cpp_runner_timing', requestId, ...timing }));
       }
     }
   }

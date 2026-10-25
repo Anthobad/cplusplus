@@ -41,6 +41,7 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalResult, setEvalResult] = useState<CodeEvaluationResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [includeAiFeedback, setIncludeAiFeedback] = useState(true);
   const pendingEvaluation = useRef<AbortController | null>(null);
 
   useEffect(() => () => {
@@ -82,7 +83,7 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
         studentCode: code,
         mode,
         wasAssisted,
-        requestAiFeedback: mode === "practice",
+        requestAiFeedback: mode === "practice" && includeAiFeedback,
         challengeTitle: challenge.title,
         expectedBehavior: challenge.expectedBehavior,
       };
@@ -203,6 +204,11 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
           )}
 
           {/* Run / Evaluate Code */}
+          {mode === "practice" && <label className="flex items-center gap-1.5 text-xs text-slate-300">
+            <input type="checkbox" checked={includeAiFeedback} disabled={isEvaluating}
+              onChange={event => setIncludeAiFeedback(event.target.checked)} />
+            Include AI review (slower)
+          </label>}
           <button
             onClick={handleRunEvaluation}
             disabled={isEvaluating}

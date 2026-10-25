@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { RequestHandler } from 'express';
 import { HttpError, type Principal, type TrustedStore } from './store.js';
+import { deferSubmissionLog, measureSubmissionPhase } from '../submissionPerformance.js';
 
 export const QUOTA = {
   execution: { minute: 6, daily: 50, anonymousMinute: 3, anonymousDaily: 10, globalMinute: 20, globalDaily: 200, globalConcurrent: 2, userConcurrent: 1 },
@@ -14,7 +15,7 @@ export function createAccess(store: TrustedStore, verify: (token: string) => Pro
     if (typeof header !== 'string' || !/^Bearer [^\s]{1,8192}$/.test(header)) {
       res.status(401).json({ error: 'A Firebase ID token is required.' }); return;
     }
-    try { res.locals.principal = await verify(header.slice(7)); next(); }
+    try { res.locals.principal = await measureSubmissionPhase('authentication', () => verify(header.slice(7))); next(); }
     catch (error) { res.status(error instanceof HttpError ? error.status : 503).json({ error: 'Authentication failed or is unavailable.' }); }
   };
 
@@ -56,8 +57,9 @@ export function createAccess(store: TrustedStore, verify: (token: string) => Pro
 
   const limited = (kind: keyof typeof QUOTA, handler: RequestHandler, cost = 1): RequestHandler => async (req, res, next) => {
     let release: (() => Promise<void>) | undefined;
+    const finalizeTiming = deferSubmissionLog();
     try {
-      release = await reserve(res.locals.principal, kind, cost);
+      release = await measureSubmissionPhase('quotaReservation', () => reserve(res.locals.principal, kind, cost));
       await handler(req, res, next);
     } catch (error) {
       if (!res.headersSent) {
@@ -66,7 +68,8 @@ export function createAccess(store: TrustedStore, verify: (token: string) => Pro
         res.status(status).json({ error: error instanceof HttpError ? error.message : 'Trusted assessment storage is unavailable. No completion was awarded.' });
       }
     } finally {
-      if (release) try { await release(); } catch { /* Safe: lease stays occupied until expiry. */ }
+      if (release) try { await measureSubmissionPhase('quotaRelease', release); } catch { /* Safe: lease stays occupied until expiry. */ }
+      finalizeTiming();
     }
   };
   return { authenticate, reserve, limited };

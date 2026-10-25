@@ -1,0 +1,44 @@
+{
+  "deploymentId": "dpl_86upoMnxPsjX7puj984uBV89JW4D",
+  "revision": "060eb27",
+  "date": "2026-10-25",
+  "location": "production website and production Vercel runner logs; before changes",
+  "browserMeasurementsReportedByUser": [
+    {
+      "mode": "practice",
+      "aiFeedbackIncluded": true,
+      "endToEndMs": 45890
+    },
+    {
+      "mode": "assessment",
+      "endToEndMs": 14220
+    }
+  ],
+  "runnerSamples": [
+    {
+      "totalMs": 13113.210983,
+      "snapshotHit": false,
+      "recovery": "snapshot_version_or_age_mismatch",
+      "aptProvisioningMs": 10834.413672,
+      "compilationMs": 336.508803,
+      "executionMs": 14.404362,
+      "cleanupMs": 1125.788782
+    },
+    {
+      "totalMs": 13866.951157,
+      "snapshotHit": false,
+      "recovery": "snapshot_version_or_age_mismatch",
+      "aptProvisioningMs": 11550.511785,
+      "compilationMs": 321.123111,
+      "executionMs": 15.886019,
+      "cleanupMs": 1081.288541
+    }
+  ],
+  "limitations": [
+    "Production challenge ID was not reported.",
+    "Runner samples were not correlated to individual browser responses.",
+    "Function cold/warm state was not recorded by the old instrumentation.",
+    "Authentication, quota and AI phases cannot be separated from the old logs.",
+    "No production after-change measurements exist yet; changes have not been deployed."
+  ]
+}

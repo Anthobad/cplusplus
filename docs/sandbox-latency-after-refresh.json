@@ -1,0 +1,117 @@
+{
+  "measuredAt": "2026-10-25T21:19:12.357Z",
+  "location": "local trusted evaluator invoking real Vercel sandboxes; excludes Firebase/API/AI/browser latency",
+  "records": [
+    {
+      "label": "after-refresh",
+      "sample": 1,
+      "endToEndMs": 6816.663425000001,
+      "timing": {
+        "phases": {
+          "sandboxCreation": 2262.052912,
+          "snapshotRestoration": 2262.094654,
+          "commandStart": 366.5344329999998,
+          "sourceUpload": 958.1784189999998,
+          "supervisorWait": 582.640746,
+          "resultFetch": 254.89479800000026,
+          "cleanup": 2391.270947
+        },
+        "sdkCalls": 7,
+        "snapshotHit": true,
+        "totalMs": 6816.120054999999,
+        "snapshotSelection": {
+          "configured": true,
+          "snapshotId": "snap_w1pYiZsVMGVZSoGZLzHc4saYgVlQ",
+          "versionMatches": true,
+          "ageMs": 70446,
+          "maxAgeMs": 604800000
+        },
+        "compilationMs": 562.2717139999977,
+        "executionMs": 17.85564399999373
+      },
+      "status": 200,
+      "verified": true,
+      "testsPassed": 5,
+      "totalTests": 5,
+      "cleanup": [
+        {
+          "status": "stopped"
+        }
+      ]
+    },
+    {
+      "label": "after-refresh",
+      "sample": 2,
+      "endToEndMs": 5348.511452,
+      "timing": {
+        "phases": {
+          "sandboxCreation": 1228.9184110000006,
+          "snapshotRestoration": 1228.9249689999997,
+          "commandStart": 592.8343800000002,
+          "sourceUpload": 1208.888288000002,
+          "supervisorWait": 806.0993819999985,
+          "resultFetch": 254.4445459999988,
+          "cleanup": 1256.668952
+        },
+        "sdkCalls": 7,
+        "snapshotHit": true,
+        "totalMs": 5348.273016,
+        "snapshotSelection": {
+          "configured": true,
+          "snapshotId": "snap_w1pYiZsVMGVZSoGZLzHc4saYgVlQ",
+          "versionMatches": true,
+          "ageMs": 77590,
+          "maxAgeMs": 604800000
+        },
+        "compilationMs": 758.3452229999991,
+        "executionMs": 28.172006999994892
+      },
+      "status": 200,
+      "verified": true,
+      "testsPassed": 5,
+      "totalTests": 5,
+      "cleanup": [
+        {
+          "status": "stopped"
+        }
+      ]
+    },
+    {
+      "label": "after-refresh",
+      "sample": 3,
+      "endToEndMs": 3855.5222220000014,
+      "timing": {
+        "phases": {
+          "sandboxCreation": 648.288278,
+          "snapshotRestoration": 648.3012580000013,
+          "commandStart": 378.8136969999996,
+          "sourceUpload": 606.3870329999991,
+          "supervisorWait": 740.4679840000008,
+          "resultFetch": 201.98158400000102,
+          "cleanup": 1279.2257399999999
+        },
+        "sdkCalls": 7,
+        "snapshotHit": true,
+        "totalMs": 3855.432285000001,
+        "snapshotSelection": {
+          "configured": true,
+          "snapshotId": "snap_w1pYiZsVMGVZSoGZLzHc4saYgVlQ",
+          "versionMatches": true,
+          "ageMs": 83224,
+          "maxAgeMs": 604800000
+        },
+        "compilationMs": 674.3833519999996,
+        "executionMs": 25.091037999999344
+      },
+      "status": 200,
+      "verified": true,
+      "testsPassed": 5,
+      "totalTests": 5,
+      "cleanup": [
+        {
+          "status": "stopped"
+        }
+      ]
+    }
+  ]
+}

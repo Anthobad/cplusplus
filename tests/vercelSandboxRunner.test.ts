@@ -180,6 +180,8 @@ describe('trusted compiler snapshot and batch execution', () => {
     expect(f.inputs).toHaveLength(1);
     expect(f.inputs[0]).not.toHaveProperty('expectedOutput');
     expect(metrics[0]).toMatchObject({ snapshotHit: true, sdkCalls: 7, compilationMs: 2, executionMs: 4 });
+    expect(metrics[0]).toMatchObject({ cleanupSucceeded: true, snapshotSelection: { configured: true, versionMatches: true } });
+    expect(metrics[0].phases.snapshotRestoration).toBeGreaterThanOrEqual(0);
     expect(metrics[0].phases).not.toHaveProperty('aptProvisioning');
     expect(f.client.stop).toHaveBeenCalledOnce();
   });
