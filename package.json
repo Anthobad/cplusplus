@@ -7,12 +7,16 @@
     "node": "24.x"
   },
   "overrides": {
+    "@vercel/cli-config": {
+      "zod": "^4.6.7"
+    },
     "@firebase/firestore": {
       "@grpc/grpc-js": "^1.14.6"
     }
   },
   "scripts": {
-    "test:api-package": "node tests/verifyPackagedApi.mjs",
+    "test:api-package": "node --no-experimental-require-module tests/verifyPackagedApi.mjs",
+    "test:backend": "node scripts/build-server.mjs && node --no-experimental-require-module tests/verifyBuiltBackend.mjs",
     "cleanup:assessment-sessions": "node --import tsx scripts/cleanup-assessment-sessions.ts",
     "test:firestore-security": "node --import tsx scripts/test-firestore-security.ts",
     "review:progress-migration": "node --import tsx scripts/review-progress-migration.ts",
@@ -24,10 +28,10 @@
     "pretest": "npm run generate:curriculum",
     "prelint": "npm run generate:curriculum",
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "start": "node dist/server.cjs",
+    "build": "vite build && node scripts/build-server.mjs",
+    "start": "node server-build/server.cjs",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
+    "clean": "rm -rf dist server-build server.js",
     "lint": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -56,6 +60,7 @@
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "nock": "15.0.5",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

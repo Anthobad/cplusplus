@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
+
+for (const asset of ['../dist/server.cjs', '../dist/server.cjs.map', '../dist/server-build']) {
+  assert(!existsSync(new URL(asset, import.meta.url)), 'Backend code must stay outside public frontend output.');
+}
 
 const manifest = JSON.parse(readFileSync(new URL('../dist/.vite/manifest.json', import.meta.url), 'utf8'));
 const entry = Object.keys(manifest).find(key => manifest[key].isEntry);
