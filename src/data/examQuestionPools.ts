@@ -1,5 +1,5 @@
 import { ExamQuestionDetail, Exam } from "../types";
-import { withAssessmentPools } from './assessmentContent';
+import { withAssessmentPools } from './assessmentContent.js';
 
 /**
  * Extensive question pools for each of the 4 milestone exams.

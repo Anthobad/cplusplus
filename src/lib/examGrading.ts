@@ -1,7 +1,7 @@
 import type { CodeEvaluationResult, Exam, ExamQuestionDetail } from '../types';
-import { authenticatedFetch } from './authenticatedFetch';
+import { authenticatedFetch } from './authenticatedFetch.js';
 import { canonicalExplanationId, EXPLANATION_CRITERIA, EXPLANATION_RUBRIC_VERSION,
-  explanationPercentage, unansweredExplanation, type ExplanationAssessment } from './explanationRubric';
+  explanationPercentage, unansweredExplanation, type ExplanationAssessment } from './explanationRubric.js';
 
 export interface GradedExam {
   score: number;

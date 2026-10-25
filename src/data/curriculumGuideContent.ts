@@ -1,6 +1,6 @@
 import type { Unit, TheorySection, CodeExample } from '../types';
-import { GUIDE_WALKTHROUGHS } from './guideWalkthroughs';
-import { SORTING_LESSONS } from './sortingLessons';
+import { GUIDE_WALKTHROUGHS } from './guideWalkthroughs.js';
+import { SORTING_LESSONS } from './sortingLessons.js';
 
 // Content additions only: original IDs, challenges, quizzes and progress gates are retained.
 const additions: Record<number, { sections: TheorySection[]; examples: CodeExample[] }> = {};

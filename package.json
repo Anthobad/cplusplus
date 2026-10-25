@@ -12,6 +12,7 @@
     }
   },
   "scripts": {
+    "test:api-package": "node tests/verifyPackagedApi.mjs",
     "test:firestore-security": "node --import tsx scripts/test-firestore-security.ts",
     "review:progress-migration": "node --import tsx scripts/review-progress-migration.ts",
     "generate:curriculum": "node --import tsx scripts/generate-curriculum-assets.ts",

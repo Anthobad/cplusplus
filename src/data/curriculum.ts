@@ -18,13 +18,13 @@
  */
 
 import type { Phase, Unit } from "../types";
-import { withGuideCoverage } from "./curriculumGuideContent";
-import { withBeginnerLessons } from "./beginnerLessons";
-import { DOMAIN_1_UNITS } from "./domain1_basics";
-import { DOMAIN_2_UNITS } from "./domain2_datastructures";
-import { DOMAIN_3_UNITS } from "./domain3_oop";
-import { DOMAIN_4_UNITS } from "./domain4_algorithms";
-import { createCurriculum } from "./createCurriculum";
+import { withGuideCoverage } from "./curriculumGuideContent.js";
+import { withBeginnerLessons } from "./beginnerLessons.js";
+import { DOMAIN_1_UNITS } from "./domain1_basics.js";
+import { DOMAIN_2_UNITS } from "./domain2_datastructures.js";
+import { DOMAIN_3_UNITS } from "./domain3_oop.js";
+import { DOMAIN_4_UNITS } from "./domain4_algorithms.js";
+import { createCurriculum } from "./createCurriculum.js";
 
 /**
  * Authoritative 4-Domain Systems Engineering Curriculum (Topics 1–39).

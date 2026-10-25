@@ -1,6 +1,6 @@
 import type { Unit } from '../types';
-import { teachingDeepDive } from './lessonDeepDives';
-import { withExampleTeachingNotes } from './exampleTeachingNotes';
+import { teachingDeepDive } from './lessonDeepDives.js';
+import { withExampleTeachingNotes } from './exampleTeachingNotes.js';
 
 /** Teaching content only. IDs, compiler challenges and progression live elsewhere. */
 interface BeginnerLesson {

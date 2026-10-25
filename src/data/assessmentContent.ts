@@ -1,5 +1,5 @@
 import type { Exam, ExamQuestionDetail } from '../types';
-import { EXAM_CODING } from './examCoding';
+import { EXAM_CODING } from './examCoding.js';
 
 // Correct educational statements without changing grading, sampling or challenge execution.
 const corrections: Record<string, Partial<ExamQuestionDetail>> = {

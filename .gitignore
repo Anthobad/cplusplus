@@ -8,3 +8,4 @@ coverage/
 !.env.example
 .vercel
 /src/generated/curriculum/
+/specs/curricullum.md

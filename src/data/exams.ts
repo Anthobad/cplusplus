@@ -1,5 +1,5 @@
 import { Exam } from "../types";
-import { withAssessmentCorrections } from './assessmentContent';
+import { withAssessmentCorrections } from './assessmentContent.js';
 
 export const CURRICULUM_EXAMS: Exam[] = withAssessmentCorrections([
   {
