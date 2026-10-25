@@ -1,12 +1,12 @@
 {
-  "projectId": "concentrated-fusion-tdw25",
-  "appId": "1:588239623600:web:844ea754837d6919423275",
-  "apiKey": "AIzaSyCG81F156cvefs6jITyK35kPRintt0e9S8",
-  "authDomain": "concentrated-fusion-tdw25.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-cinterviewprepro-a7eb313a-f448-4f88-b182-af3ce14c1577",
-  "storageBucket": "concentrated-fusion-tdw25.firebasestorage.app",
-  "messagingSenderId": "588239623600",
-  "measurementId": "",
-  "oAuthClientId": "588239623600-ru6hsmdkn3k9ikphl76h94tomqgcal1b.apps.googleusercontent.com",
+  "projectId": "cpp-interview-prep",
+  "appId": "1:140167449814:web:fff0faaab39afc9ef4cd77",
+  "apiKey": "AIzaSyApBvTXg2onJmSmJmvU_T3CCzBW6B9l628",
+  "authDomain": "cpp-interview-prep.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "cpp-interview-prep.firebasestorage.app",
+  "messagingSenderId": "140167449814",
+  "measurementId": "G-J5QRP9WY9E",
+  "oAuthClientId": "",
   "recaptchaSiteKey": ""
 }
