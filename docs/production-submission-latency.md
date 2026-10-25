@@ -77,6 +77,12 @@ Snapshot refresh consumes the existing Hobby allowance, including lifetime snaps
 
 ## Validation and production follow-up
 
+### Deployment inspection after refresh
+
+Deployment `dpl_4hkFRziFyb1E8zRWuBZPzDJiQ5EF` (`cplusplus-czpml99q8-anthobads-projects.vercel.app`, revision `a14b7dd`) is production READY on Node 24. Its build log confirms snapshot `snap_w1pYiZsVMGVZSoGZLzHc4saYgVlQ`, `stale: false`, and refresh deadline `2026-11-01T21:17:44.846Z`. The production alias `/api/health` returned HTTP 200.
+
+The first inspection found 25 evaluation timing events, all HTTP 429 during quota reservation, with no runner invoked. Authentication completed, but these requests cannot establish snapshot restoration or submission performance. First measured request authentication/quota durations were 238.75/797.46 ms; subsequent rejected requests completed in approximately 162–227 ms. The existing error does not distinguish minute, daily, and concurrency limits. A read-only local quota-counter inspection could not authenticate because local Admin credentials were unavailable; no records or limits were changed. Successful production after measurements remain pending. Repeated submissions should pause until the applicable limit permits execution; a daily cap will not reset after the generic 60-second Retry-After interval.
+
 All **255 tests across 23 files** pass, including real C++ grading regressions, snapshot/fallback/isolation tests, auth/quota failures, timing privacy and concurrent request isolation, and the Practice AI opt-out. TypeScript and production build pass; the existing Vite chunk-size warning remains. The live six-submission benchmark additionally verified actual compilation, public/hidden passing and cleanup. It did not exercise every possible malicious program in production.
 
 To finish production after measurements, deploy the reviewed source/pointer, then run repeated submissions with identical code/challenge, first without AI feedback, then with it. Respect the existing quota (six execution units/minute per signed-in user). Correlate `X-Submission-Id` with both timing events. Confirm `snapshotHit: true`, no apt phase, separate authentication/quota/persistence/AI durations and successful cleanup. Record first-observed and subsequent requests without claiming guaranteed function coldness. No new telemetry or refreshed pointer is active in production until that deployment occurs.
