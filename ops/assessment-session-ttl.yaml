@@ -1,0 +1,7 @@
+# Prepared only. Apply after explicit approval; this can incur Firestore TTL charges.
+# gcloud firestore fields ttls update deleteAfter --flags-file=ops/assessment-session-ttl.yaml
+--project: cpp-interview-prep
+--database: (default)
+--collection-group: _assessmentSessions
+--enable-ttl:
+--async:

@@ -79,6 +79,8 @@ export const ExamView: React.FC<ExamViewProps> = ({
 
   // Timer state
   const [secondsRemaining, setSecondsRemaining] = useState(exam.durationMinutes * 60);
+  const clockEnd = useRef<number | null>(null);
+  const [answersLocked, setAnswersLocked] = useState(false);
   const timeExpired = secondsRemaining === 0;
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -121,7 +123,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
     if (examSubmitted || isPrereqLocked || timeExpired) return;
 
     const timer = setInterval(() => {
-      setSecondsRemaining(prev => Math.max(0, prev - 1));
+      if (clockEnd.current !== null) setSecondsRemaining(Math.max(0, Math.ceil((clockEnd.current - performance.now()) / 1000)));
     }, 1000);
 
     return () => clearInterval(timer);
@@ -168,24 +170,29 @@ export const ExamView: React.FC<ExamViewProps> = ({
     const version = ++submissionVersion.current;
     setSessionId(null); setSessionLoading(true); setSubmissionError(null);
     try {
-      const session = await trustedRequest<{ sessionId: string; exam: Exam }>("/api/assessment/exam/start", { examId: exam.id });
+      const requestStarted = performance.now();
+      const session = await trustedRequest<{ sessionId: string; exam: Exam; deadlineAt: number; serverNow: number }>("/api/assessment/exam/start",
+        { examId: exam.id, ...(!resetClock && sessionId ? { sessionId } : {}) });
       if (version !== submissionVersion.current) return;
       setActiveExam(session.exam); setSessionId(session.sessionId);
-      setAnswers({});
-      if (resetClock) setSecondsRemaining(session.exam.durationMinutes * 60);
+      setAnswers({}); setAnswersLocked(false);
+      // Use server time and a monotonic browser clock; background timer throttling cannot add time.
+      const remainingMs = Math.max(0, session.deadlineAt - session.serverNow - (performance.now() - requestStarted));
+      clockEnd.current = performance.now() + remainingMs;
+      setSecondsRemaining(Math.ceil(remainingMs / 1000));
     } catch (error) {
       if (version === submissionVersion.current) setSubmissionError(error instanceof Error ? error.message : "Exam session unavailable.");
     } finally { if (version === submissionVersion.current) setSessionLoading(false); }
   }
   const handleShufflePool = () => {
-    if (examSubmitted || submittingRef.current || timeExpired || sessionLoading) return;
+    if (examSubmitted || submittingRef.current || answersLocked || timeExpired || sessionLoading) return;
     void startServerExam(false);
     setPoolShuffledNotice(true);
     setTimeout(() => setPoolShuffledNotice(false), 3000);
   };
 
   const handleAnswerChange = (questionId: string, val: any) => {
-    if (examSubmitted || submittingRef.current || timeExpired) return;
+    if (examSubmitted || submittingRef.current || answersLocked || timeExpired) return;
     setAnswers(prev => ({ ...prev, [questionId]: val }));
   };
 
@@ -193,6 +200,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
     if (examSubmitted || isPrereqLocked || submittingRef.current) return;
     submittingRef.current = true;
     setIsSubmitting(true);
+    setAnswersLocked(true);
     setSubmissionError(null);
     const submittedAnswers = { ...answers };
     const version = submissionVersion.current;
@@ -366,7 +374,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
           {!examSubmitted && (
             <button
               onClick={handleShufflePool}
-              disabled={isSubmitting || timeExpired}
+              disabled={isSubmitting || answersLocked || timeExpired}
               className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition-colors"
               title="Sample a different randomized set of questions from the pool"
             >
@@ -467,7 +475,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
           {!examSubmitted && (
             <button
               onClick={handleShufflePool}
-              disabled={isSubmitting || timeExpired}
+              disabled={isSubmitting || answersLocked || timeExpired}
               className="shrink-0 self-start sm:self-center px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-colors border border-slate-700 flex items-center space-x-1.5 text-xs"
             >
               <Shuffle className="h-3 w-3 text-indigo-400" />
@@ -624,7 +632,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
                         <button
                           key={optIdx}
                           onClick={() => handleAnswerChange(q.id, optIdx)}
-                          disabled={examSubmitted || isSubmitting || timeExpired}
+                          disabled={examSubmitted || isSubmitting || answersLocked || timeExpired}
                           className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${style}`}
                         >
                           <span>{opt}</span>
@@ -657,7 +665,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
                         <button
                           key={val.toString()}
                           onClick={() => handleAnswerChange(q.id, val)}
-                          disabled={examSubmitted || isSubmitting || timeExpired}
+                          disabled={examSubmitted || isSubmitting || answersLocked || timeExpired}
                           className={`flex-1 p-3 rounded-xl border text-xs font-semibold text-center transition-all ${style}`}
                         >
                           {val ? "True" : "False"}
@@ -686,7 +694,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
                       aria-label={q.type === 'coding-challenge' ? `C++ answer ${idx + 1}` : `Explanation answer ${idx + 1}`}
                       value={studentAns ?? (q.type === 'coding-challenge' ? q.initialCode || '' : '')}
                       onChange={e => handleAnswerChange(q.id, e.target.value)}
-                      disabled={examSubmitted || isSubmitting || timeExpired}
+                      disabled={examSubmitted || isSubmitting || answersLocked || timeExpired}
                       placeholder="Write your explanation or C++ implementation here..."
                       className="w-full p-4 font-mono text-xs bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 disabled:opacity-80"
                     />
@@ -735,6 +743,7 @@ export const ExamView: React.FC<ExamViewProps> = ({
         </div>
 
         {/* Submit Action Area */}
+        {answersLocked && !examSubmitted && <p className="text-sm text-slate-300">Your submitted answers are locked. If grading fails, retry to grade these same answers.</p>}
         {submissionError && <p role="alert" className="p-4 rounded-xl bg-red-950/40 border border-red-500/40 text-red-200 text-sm">{submissionError}</p>}
         {!examSubmitted && (
           <div className="pt-4 pb-12 flex items-center justify-between border-t border-slate-800">

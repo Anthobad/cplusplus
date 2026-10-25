@@ -5,6 +5,26 @@ import { CURRICULUM_EXAMS } from '../../src/data/exams.js';
 import { generateRandomizedExam } from '../../src/data/examQuestionPools.js';
 import { HttpError, type Principal, type TrustedStore } from './store.js';
 
+export const EXAM_DELIVERY_GRACE_MS = 10_000;
+export const EXAM_SESSION_RETENTION_MS = 24 * 60 * 60_000;
+const answerKey = (answers: Record<string, unknown>) => createHash('sha256')
+  .update(JSON.stringify(Object.keys(answers).sort().map(key => [key, answers[key]]))).digest('hex');
+function deadline(session: any): number {
+  // Compatibility: derive a real exam deadline for sessions created before this change.
+  const value = session.deadlineAt ?? session.createdAt + session.exam.durationMinutes * 60_000;
+  if (!Number.isSafeInteger(value)) throw new HttpError(410, 'Invalid exam deadline. Start a new exam.');
+  return value;
+}
+function checkSession(session: any, principal: Principal, time: number) {
+  if (!session || session.uid !== principal.uid) throw new HttpError(403, 'Exam session does not belong to this user.');
+  if (!Number.isSafeInteger(session.expiresAt) || session.expiresAt <= time) throw new HttpError(410, 'Exam session has expired.');
+}
+function checkFirstSubmission(session: any, time: number) {
+  if (!session.submission && !session.outcome && time > deadline(session) + EXAM_DELIVERY_GRACE_MS) {
+    throw new HttpError(410, 'The exam deadline has passed. Start a new attempt.');
+  }
+}
+
 export function initialProgress(principal: Principal): UserProgress {
   return { userId: principal.uid, unlockedUnits: ['topic-1'], completedUnits: [], completedUnitIds: [],
     unitQuizScores: {}, quizScores: {}, examAttempts: {}, verifiedCodingPassed: [],
@@ -75,30 +95,68 @@ export function createProgressService(store: TrustedStore, now = Date.now) {
         totalCodingChallengesSolved: Object.values(results).filter(result => result.passed).length };
     });
   }
-  async function startExam(principal: Principal, examId: string) {
+  async function startExam(principal: Principal, examId: string, reshuffleSessionId?: string) {
     const exam = CURRICULUM_EXAMS.find(exam => exam.id === examId);
     if (!exam) throw new HttpError(400, 'Unknown exam.');
     const current = await read(principal);
     if (!checkExamPrerequisites(exam, current).isUnlocked) throw new HttpError(403, 'Exam prerequisites are not met.');
-    const sessionId = randomUUID(), sessionPath = `_assessmentSessions/${sessionId}`;
+    const sessionId = reshuffleSessionId ?? randomUUID(), sessionPath = `_assessmentSessions/${sessionId}`;
+    if (!/^[a-f0-9-]{36}$/.test(sessionId)) throw new HttpError(400, 'Invalid exam session.');
     const generated = generateRandomizedExam(exam);
-    await store.transact([sessionPath], () => ({ value: undefined, writes: { [sessionPath]: {
-      uid: principal.uid, exam: generated, createdAt: now(), expiresAt: now() + 24 * 60 * 60_000,
-    } } }));
-    return { sessionId, exam: generated };
+    const session = await store.transact([sessionPath], docs => {
+      const time = now();
+      let value;
+      if (reshuffleSessionId) {
+        const prior = docs[sessionPath];
+        checkSession(prior, principal, time);
+        if (prior.exam.id !== examId || prior.submission || prior.outcome) throw new HttpError(409, 'This exam session cannot be shuffled.');
+        if (time >= deadline(prior)) throw new HttpError(410, 'The exam deadline has passed.');
+        value = { ...prior, exam: generated, partial: {}, deadlineAt: deadline(prior) };
+      } else {
+        value = { uid: principal.uid, exam: generated, createdAt: time,
+          deadlineAt: time + generated.durationMinutes * 60_000,
+          expiresAt: time + EXAM_SESSION_RETENTION_MS,
+          deleteAfter: new Date(time + EXAM_SESSION_RETENTION_MS) };
+      }
+      return { value, writes: { [sessionPath]: value } };
+    });
+    return { sessionId, exam: generated, deadlineAt: session.deadlineAt, serverNow: now() };
   }
   async function getSession(principal: Principal, sessionId: string) {
     if (typeof sessionId !== 'string' || !/^[a-f0-9-]{36}$/.test(sessionId)) throw new HttpError(400, 'Invalid exam session.');
     const session = await store.read(`_assessmentSessions/${sessionId}`);
-    if (!session || session.uid !== principal.uid) throw new HttpError(403, 'Exam session does not belong to this user.');
-    if (session.expiresAt < now()) throw new HttpError(410, 'Exam session has expired.');
-    return session as { uid: string; exam: Exam; expiresAt: number; outcome?: any; partial?: Record<string, { key: string; result: any }> };
+    checkSession(session, principal, now());
+    checkFirstSubmission(session, now());
+    return session as { uid: string; exam: Exam; createdAt: number; deadlineAt?: number; expiresAt: number; outcome?: any;
+      submission?: { answers: Record<string, unknown>; key: string; receivedAt: number; tabSwitchWarnings: number };
+      partial?: Record<string, { key: string; result: any }> };
+  }
+  async function beginSubmission(principal: Principal, sessionId: string, answers: Record<string, unknown>, tabSwitchWarnings: number,
+    expectedExam: Exam) {
+    const sessionPath = `_assessmentSessions/${sessionId}`;
+    const key = answerKey(answers);
+    return store.transact([sessionPath], docs => {
+      const session = docs[sessionPath], time = now();
+      checkSession(session, principal, time);
+      if (session.outcome) return { value: session };
+      // A concurrent shuffle must not silently change the question set being submitted.
+      if (JSON.stringify(session.exam) !== JSON.stringify(expectedExam)) throw new HttpError(409, 'The question set changed. Reload the exam.');
+      checkFirstSubmission(session, time);
+      if (session.submission) {
+        if (session.submission.key !== key) throw new HttpError(409, 'Answers are locked after submission. Retry the original answers.');
+        return { value: session };
+      }
+      const value = { ...session, deadlineAt: deadline(session),
+        submission: { answers, key, tabSwitchWarnings, receivedAt: time } };
+      return { value, writes: { [sessionPath]: value } };
+    });
   }
   async function remember(principal: Principal, sessionId: string, questionId: string, key: string, result: unknown) {
     const sessionPath = `_assessmentSessions/${sessionId}`;
     await store.transact([sessionPath], docs => {
       const session = docs[sessionPath];
-      if (!session || session.uid !== principal.uid || session.expiresAt < now()) throw new HttpError(403, 'Invalid exam session.');
+      checkSession(session, principal, now());
+      if (!session.submission) throw new HttpError(409, 'Submit answers before grading.');
       return { value: undefined, writes: { [sessionPath]: { ...session,
         partial: { ...session.partial, [questionId]: { key, result } } } } };
     });
@@ -107,8 +165,10 @@ export function createProgressService(store: TrustedStore, now = Date.now) {
     const root = path(principal), sessionPath = `_assessmentSessions/${sessionId}`, history = `${root}/exams/${sessionId}`;
     return store.transact([root, sessionPath, history], docs => {
       const session = docs[sessionPath];
-      if (!session || session.uid !== principal.uid || session.expiresAt < now()) throw new HttpError(403, 'Invalid exam session.');
+      checkSession(session, principal, now());
       if (session.outcome) return { value: session.outcome };
+      if (!session.submission || session.submission.receivedAt > deadline(session) + EXAM_DELIVERY_GRACE_MS ||
+        session.submission.key !== answerKey(attempt.answers || {})) throw new HttpError(409, 'No matching timely exam submission.');
       const current = docs[root];
       if (!checkExamPrerequisites(session.exam, current).isUnlocked) throw new HttpError(403, 'Exam prerequisites are not met.');
       const stored = { ...attempt, id: sessionId, timestamp: now(), completedAt: new Date(now()).toISOString(), integritySource: "server-v2" };
@@ -117,6 +177,6 @@ export function createProgressService(store: TrustedStore, now = Date.now) {
       return { value: outcome, writes: { [root]: progress, [history]: stored, [sessionPath]: { ...session, outcome } } };
     });
   }
-  return { read, mutate, complete, quiz, coding, startExam, getSession, remember, finishExam,
+  return { read, mutate, complete, quiz, coding, startExam, getSession, beginSubmission, remember, finishExam,
     reset: (principal: Principal) => mutate(principal, () => initialProgress(principal)) };
 }

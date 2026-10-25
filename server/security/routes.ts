@@ -47,17 +47,24 @@ export function createTrustedRoutes(options: {
     only(req.body, []); res.json(await progress.reset(res.locals.principal));
   }));
   router.post('/assessment/exam/start', access.authenticate, access.limited('action', async (req, res) => {
-    only(req.body, ['examId']); res.json(await progress.startExam(res.locals.principal, req.body.examId));
+    only(req.body, ['examId', 'sessionId']);
+    if (req.body.sessionId !== undefined && typeof req.body.sessionId !== 'string') throw new HttpError(400, 'Invalid exam session.');
+    res.json(await progress.startExam(res.locals.principal, req.body.examId, req.body.sessionId));
   }));
   router.post('/assessment/exam/submit', access.authenticate, access.limited('execution', async (req, res) => {
     only(req.body, ['sessionId', 'answers', 'tabSwitchWarnings']);
-    const session = await progress.getSession(res.locals.principal, req.body.sessionId);
+    let session = await progress.getSession(res.locals.principal, req.body.sessionId);
     if (session.outcome) { res.json(session.outcome); return; }
-    const answers = req.body.answers;
+    let answers = req.body.answers;
     if (!answers || typeof answers !== 'object' || Array.isArray(answers) || Object.keys(answers).some(id => !session.exam.questions.some(q => q.id === id)) ||
       Object.values(answers).some(answer => !['string', 'number', 'boolean'].includes(typeof answer) || (typeof answer === 'string' && answer.length > 32_000))) {
       throw new HttpError(400, 'Invalid exam answers.');
     }
+    session = await progress.beginSubmission(res.locals.principal, req.body.sessionId, answers,
+      Number.isSafeInteger(req.body.tabSwitchWarnings) && req.body.tabSwitchWarnings >= 0 ? Math.min(10000, req.body.tabSwitchWarnings) : 0,
+      session.exam);
+    if (session.outcome) { res.json(session.outcome); return; }
+    answers = session.submission!.answers;
     const reuse = async (question: any, answer: string, run: () => Promise<any>) => {
       const key = createHash('sha256').update(JSON.stringify([question, answer,
         question.codingChallengeId ? getTrustedChallenge(question.codingChallengeId) : EXPLANATION_RUBRIC_VERSION,
@@ -79,7 +86,7 @@ export function createTrustedRoutes(options: {
       examId: session.exam.id, examTitle: session.exam.title, score: grading.score, passed: grading.passed,
       answers, generatedQuestions: session.exam.questions, codingResults: grading.codingResults,
       explanationResults: grading.explanationResults,
-      tabSwitchWarnings: Number.isSafeInteger(req.body.tabSwitchWarnings) && req.body.tabSwitchWarnings >= 0 ? Math.min(10000, req.body.tabSwitchWarnings) : 0,
+      tabSwitchWarnings: session.submission!.tabSwitchWarnings,
     }, grading);
     res.json(outcome);
   }, 3));

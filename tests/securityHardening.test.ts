@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import { createAccess, LEASE_MS } from '../server/security/access';
-import { createProgressService } from '../server/security/progress';
+import { createProgressService, EXAM_DELIVERY_GRACE_MS, EXAM_SESSION_RETENTION_MS } from '../server/security/progress';
 import { createTrustedRoutes, validateCode } from '../server/security/routes';
 import { HttpError, type TrustedStore, type Principal } from '../server/security/store';
 import { ALL_UNITS } from '../src/data/curriculum';
@@ -32,9 +32,9 @@ const verify = async (token: string) => {
 };
 
 async function withApp(store: TrustedStore, run: (base: string, work: ReturnType<typeof vi.fn>) => Promise<void>,
-  explanation: (id: string, answer: string) => Promise<any> = async () => { throw new Error('provider down'); }) {
+  explanation: (id: string, answer: string) => Promise<any> = async () => { throw new Error('provider down'); }, now = Date.now) {
   const app = express(); app.use(express.json());
-  const access = createAccess(store, verify), progress = createProgressService(store);
+  const access = createAccess(store, verify, now), progress = createProgressService(store, now);
   const work = vi.fn(async () => ({ status: 200, result: { compiled: true, passed: true, score: 100,
     testsPassed: 2, totalTests: 2, testResults: [], mode: 'assessment', wasAssisted: false, verified: true } as any }));
   app.use('/api', createTrustedRoutes({ access, progress, evaluate: work, explanation }));
@@ -54,6 +54,84 @@ const post = (base: string, path: string, body: unknown, token = 'valid-a', extr
 });
 
 describe('Trusted progress and API security', () => {
+  async function timedExam() {
+    let time = Date.now();
+    const store = new TestStore(), now = () => time, service = createProgressService(store, now);
+    await service.mutate(user, current => ({ ...current, completedUnitIds: ALL_UNITS.slice(0, 18).map(unit => unit.id) }));
+    const session = await service.startExam(user, 'exam-foundations');
+    return { store, service, session, now, advanceTo: (value: number) => { time = value; } };
+  }
+  it('issues the authored deadline and a separate timestamp for eventual TTL cleanup', async () => {
+    const { store, session, now } = await timedExam();
+    const record = store.documents[`_assessmentSessions/${session.sessionId}`];
+    expect(session.deadlineAt).toBe(now() + 45 * 60_000);
+    expect(session.serverNow).toBe(now());
+    expect(record.expiresAt).toBe(now() + EXAM_SESSION_RETENTION_MS);
+    expect(record.deleteAfter).toEqual(new Date(record.expiresAt));
+  });
+  it('rejects late submissions before compiler/provider work and does not award an attempt', async () => {
+    const { store, session, now, advanceTo } = await timedExam();
+    advanceTo(session.deadlineAt + EXAM_DELIVERY_GRACE_MS + 1);
+    await withApp(store, async (base, work) => {
+      expect((await post(base, '/assessment/exam/submit', { sessionId: session.sessionId, answers: {} })).status).toBe(410);
+      expect(work).not.toHaveBeenCalled();
+      expect(store.documents['users/learner-a'].examAttempts).toEqual({});
+      expect(store.documents[`_assessmentSessions/${session.sessionId}`].submission).toBeUndefined();
+    }, undefined, now);
+  });
+  it('accepts the grace boundary, freezes answers atomically and allows only identical retries afterward', async () => {
+    const { service, session, advanceTo } = await timedExam();
+    advanceTo(session.deadlineAt + EXAM_DELIVERY_GRACE_MS);
+    const results = await Promise.allSettled([
+      service.beginSubmission(user, session.sessionId, { a: 1, b: false }, 2, session.exam),
+      service.beginSubmission(user, session.sessionId, { a: 2, b: false }, 0, session.exam),
+    ]);
+    expect(results.map(result => result.status)).toEqual(['fulfilled', 'rejected']);
+    advanceTo(session.deadlineAt + 60 * 60_000);
+    const retry = await service.beginSubmission(user, session.sessionId, { b: false, a: 1 }, 99, session.exam);
+    expect(retry.submission.answers).toEqual({ a: 1, b: false });
+    expect(retry.submission.tabSwitchWarnings).toBe(2);
+    await expect(service.beginSubmission(user, session.sessionId, { a: 2 }, 0, session.exam)).rejects.toMatchObject({ status: 409 });
+    await expect(service.beginSubmission(other, session.sessionId, { a: 1 }, 0, session.exam)).rejects.toMatchObject({ status: 403 });
+  });
+  it('finishes timely submitted grading after the deadline and preserves idempotent history', async () => {
+    const { store, service, session, advanceTo } = await timedExam();
+    await service.beginSubmission(user, session.sessionId, {}, 0, session.exam);
+    advanceTo(session.deadlineAt + 60_000);
+    await service.remember(user, session.sessionId, 'question', 'hash', { score: 50 });
+    const attempt = { examId: session.exam.id, examTitle: session.exam.title, score: 50, passed: true, answers: {} } as any;
+    const first = await service.finishExam(user, session.sessionId, attempt, { score: 50 });
+    expect(await service.finishExam(user, session.sessionId, attempt, { score: 100 })).toEqual(first);
+    expect(Object.keys(store.documents).filter(path => path.startsWith('users/learner-a/exams/'))).toHaveLength(1);
+    await expect(service.startExam(user, session.exam.id, session.sessionId)).rejects.toMatchObject({ status: 409 });
+  });
+  it('cannot finalize an unsubmitted or changed answer set and expires retries at retention time', async () => {
+    const { service, session, advanceTo, now } = await timedExam();
+    const attempt = { examId: session.exam.id, answers: {} } as any;
+    await expect(service.finishExam(user, session.sessionId, attempt, {})).rejects.toMatchObject({ status: 409 });
+    await service.beginSubmission(user, session.sessionId, { a: 1 }, 0, session.exam);
+    await expect(service.finishExam(user, session.sessionId, attempt, {})).rejects.toMatchObject({ status: 409 });
+    advanceTo(now() + EXAM_SESSION_RETENTION_MS);
+    await expect(service.beginSubmission(user, session.sessionId, { a: 1 }, 0, session.exam)).rejects.toMatchObject({ status: 410 });
+  });
+  it('preserves the deadline when shuffling and rejects stale question sets and late shuffles', async () => {
+    const { service, session, advanceTo } = await timedExam();
+    advanceTo(session.deadlineAt - 60_000);
+    const shuffled = await service.startExam(user, session.exam.id, session.sessionId);
+    expect(shuffled.sessionId).toBe(session.sessionId);
+    expect(shuffled.deadlineAt).toBe(session.deadlineAt);
+    await expect(service.beginSubmission(user, session.sessionId, {}, 0, { ...session.exam, title: 'stale' })).rejects.toMatchObject({ status: 409 });
+    advanceTo(session.deadlineAt);
+    await expect(service.startExam(user, session.exam.id, session.sessionId)).rejects.toMatchObject({ status: 410 });
+  });
+  it('enforces the derived deadline on legacy sessions without changing saved history', async () => {
+    const { store, service, session, advanceTo } = await timedExam();
+    const record = store.documents[`_assessmentSessions/${session.sessionId}`];
+    delete record.deadlineAt; delete record.deleteAfter;
+    advanceTo(session.deadlineAt + EXAM_DELIVERY_GRACE_MS + 1);
+    await expect(service.getSession(user, session.sessionId)).rejects.toMatchObject({ status: 410 });
+    expect(store.documents['users/learner-a'].examAttempts).toEqual({});
+  });
   it('rejects application-host execution before user code can access server credentials', async () => {
     await expect(createSecureEvaluator(() => new LocalCodeRunner())({})).rejects.toMatchObject({ status: 503 });
     const original = process.env.ISOLATED_RUNNER_ENDPOINT;
@@ -169,15 +247,16 @@ describe('Trusted progress and API security', () => {
     });
   });
   it('retains server-validated partial grading on outage, then retries without awarding an incomplete attempt', async () => {
-    const store = new TestStore(), service = createProgressService(store);
-    await service.read(user);
-    await service.mutate(user, current => ({ ...current, completedUnitIds: ALL_UNITS.slice(0, 18).map(unit => unit.id) }));
-    const session = await service.startExam(user, 'exam-foundations');
+    const { store, session, now, advanceTo } = await timedExam();
+    advanceTo(session.deadlineAt - 1000);
     const answers = Object.fromEntries(session.exam.questions.filter(question => question.type !== 'coding-challenge')
       .map(question => [question.id, ['mcq', 'true-false'].includes(question.type) ? question.correctAnswer : 'Clear explanation supplied.']));
     let calls = 0;
     const judge = async (id: string, answer: string) => {
-      if (++calls === 2) throw new Error('temporary provider outage');
+      if (++calls === 2) {
+        advanceTo(session.deadlineAt + 60_000);
+        throw new Error('temporary provider outage');
+      }
       const result = unansweredExplanation(canonicalExplanationId(id));
       return { ...result, evaluatedBy: 'ai-rubric', model: 'test', score: 100,
         criteria: result.criteria.map(criterion => ({ ...criterion, level: 2, evidence: answer, feedback: 'Correct explanation.' })) };
@@ -187,11 +266,13 @@ describe('Trusted progress and API security', () => {
       expect((await post(base, '/assessment/exam/submit', request)).status).toBe(503);
       expect(store.documents['users/learner-a'].examAttempts).toEqual({});
       expect(Object.keys(store.documents[`_assessmentSessions/${session.sessionId}`].partial)).toHaveLength(1);
+      expect((await post(base, '/assessment/exam/submit', { ...request, answers: {} })).status).toBe(409);
+      expect(calls).toBe(2); // Changed answers cannot trigger any more provider work.
       const retry = await post(base, '/assessment/exam/submit', request);
       expect(retry.status).toBe(200);
       expect((await retry.json()).grading.score).toBe(80);
       expect(calls).toBe(3);
-    }, judge);
+    }, judge, now);
   });
   it('shares global/user concurrency leases across instances and expires abandoned leases safely', async () => {
     let now = 0;
