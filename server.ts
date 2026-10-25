@@ -6,13 +6,36 @@ import { getCodeRunner } from "./server/codeRunner.js";
 import { getTrustedChallenge } from "./server/challengeRegistry.js";
 import { evaluateSubmission } from "./server/evaluateSubmission.js";
 import { AICodeFeedback } from "./src/types.js";
+import { createExplanationHandler, judgeExplanationWithGemini, validateExplanationAssessment, DEFAULT_EXPLANATION_MODEL } from "./server/assessExplanation.js";
+
+import { createAccess } from "./server/security/access.js";
+import { firestoreStore, verifyFirebaseToken } from "./server/security/firebaseAdmin.js";
+import { createProgressService } from "./server/security/progress.js";
+import { createTrustedRoutes, validateCode } from "./server/security/routes.js";
+import { HttpError } from "./server/security/store.js";
+import { getExplanationQuestion } from "./server/explanationRegistry.js";
+import { createSecureEvaluator } from './server/security/evaluator.js';
+import { randomUUID } from 'node:crypto';
 
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "256kb" }));
+const access = createAccess(firestoreStore, verifyFirebaseToken);
+const trustedProgress = createProgressService(firestoreStore);
+const secureEvaluate = createSecureEvaluator();
+async function assessTrustedExplanation(questionId: string, studentAnswer: string) {
+  if (typeof studentAnswer !== 'string' || studentAnswer.length > 12_000) throw new HttpError(400, 'Explanation exceeds 12,000 characters.');
+  const trusted = getExplanationQuestion(questionId);
+  const ai = getAIClient();
+  if (!trusted || !ai) throw new HttpError(503, "Explanation grading is unavailable.");
+  const model = process.env.EXAM_GRADING_MODEL || DEFAULT_EXPLANATION_MODEL;
+  const raw = await judgeExplanationWithGemini(ai, { trusted, studentAnswer, model });
+  return validateExplanationAssessment(raw, studentAnswer, questionId, model);
+}
+app.use("/api", createTrustedRoutes({ access, progress: trustedProgress, evaluate: secureEvaluate, explanation: assessTrustedExplanation }));
 
 // Lazy initialize Gemini AI client
 let aiClient: GoogleGenAI | null = null;
@@ -110,7 +133,7 @@ In modern C++ systems programming:
 }
 
 // Progress-Aware AI Mentor endpoint
-app.post("/api/chat", async (req, res) => {
+app.post("/api/chat", access.authenticate, access.limited("execution", async (req, res) => {
   try {
     const {
       messages,
@@ -202,7 +225,7 @@ Pedagogical Directives:
     const fallbackReply = getCppMentorFallbackReply(req.body?.message || "", req.body?.context);
     res.json({ reply: fallbackReply });
   }
-});
+}));
 
 // Helper for qualitative AI Code Review
 async function getQualitativeAIFeedback(
@@ -250,168 +273,37 @@ Provide qualitative code review feedback in JSON format:
     });
     return JSON.parse(response.text || "{}") as AICodeFeedback;
   } catch (err) {
-    console.warn("AI review generation skipped:", err);
+    console.warn("AI review generation skipped.");
     return undefined;
   }
 }
 
-// Request flooding & duplicate in-flight evaluation prevention
-const inFlightEvaluations = new Map<string, Promise<{ status: number; result: any }>>();
-const recentClientRequests = new Map<string, number>();
-
-// REAL C++ Code Execution & Evaluation endpoint
-// The compiler and test runner exclusively decide correctness.
-app.post("/api/evaluate-code", async (req, res) => {
-  try {
-    const clientIp =
-      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
-      req.socket.remoteAddress ||
-      "unknown";
-    const now = Date.now();
-    const lastReq = recentClientRequests.get(clientIp) || 0;
-
-    // Reject rapid repeated clicks (< 300ms) to prevent accidental UI flooding
-    if (now - lastReq < 300) {
-      return res.status(429).json({
-        compiled: false,
-        passed: false,
-        score: 0,
-        testsPassed: 0,
-        totalTests: 0,
-        testResults: [],
-        mode: req.body?.mode || "practice",
-        wasAssisted: Boolean(req.body?.wasAssisted),
-        verified: false,
-        error: "Please wait a moment before re-submitting.",
-      });
-    }
-    recentClientRequests.set(clientIp, now);
-
-    // Bounded cleanup for client IP map
-    if (recentClientRequests.size > 1000) {
-      const expiry = now - 60000;
-      for (const [ip, ts] of recentClientRequests.entries()) {
-        if (ts < expiry) recentClientRequests.delete(ip);
-      }
-    }
-
-    // Deduplicate identical in-flight submissions from the same client
-    const sourceCode = (req.body.code || req.body.studentCode || "").trim();
-    const dedupeKey = `${clientIp}:${req.body.challengeId || ""}:${req.body.mode || ""}:${sourceCode}`;
-
-    let evalPromise = inFlightEvaluations.get(dedupeKey);
-    if (!evalPromise) {
-      evalPromise = evaluateSubmission(req.body).finally(() => {
-        inFlightEvaluations.delete(dedupeKey);
-      });
-      inFlightEvaluations.set(dedupeKey, evalPromise);
-    }
-
-    const { status, result } = await evalPromise;
-
-    // Attach qualitative AI feedback if requested (AI NEVER overrides compiler/test pass/fail)
-    const requestAiFeedback = req.body.requestAiFeedback !== false;
-
-    if (requestAiFeedback && result.compiled) {
-      const ai = getAIClient();
-      try {
-        const registryChallenge = req.body.challengeId ? getTrustedChallenge(req.body.challengeId) : undefined;
-        const feedback = await getQualitativeAIFeedback(
-          ai,
-          sourceCode,
-          registryChallenge?.title || req.body.challengeTitle || "C++ Coding Challenge",
-          req.body.expectedBehavior || "Correct implementation",
-          result
-        );
-        if (feedback) {
-          result.aiFeedback = feedback;
-        }
-      } catch (_e) {}
-    }
-
-    return res.status(status).json(result);
-  } catch (error: any) {
-    console.error("Evaluation service failure:", error);
-    // Explicit error response without modifying progression (Requirement 1, 2 & 18)
-    return res.status(503).json({
-      compiled: false,
-      passed: false,
-      score: 0,
-      testsPassed: 0,
-      totalTests: 0,
-      testResults: [],
-      mode: req.body?.mode || "practice",
-      wasAssisted: Boolean(req.body?.wasAssisted),
-      verified: false,
-      error: "Code evaluation is temporarily unavailable. Your attempt was not counted.",
-      compileError: "The C++ evaluation runner could not execute. Your attempt was not counted.",
-    });
+// Authentication and transactional quotas apply before any compiler/sandbox work.
+app.post("/api/evaluate-code", access.authenticate, access.limited('execution', async (req, res) => {
+  validateCode(req.body);
+  const { status, result } = await secureEvaluate(req.body);
+  if (status === 200 && result.passed) await trustedProgress.coding(res.locals.principal, req.body.challengeId, result);
+  if (req.body.requestAiFeedback !== false && result.compiled) {
+    const challenge = getTrustedChallenge(req.body.challengeId);
+    const feedback = await getQualitativeAIFeedback(getAIClient(), req.body.studentCode || req.body.code,
+      challenge?.title || "C++ Coding Challenge", challenge?.title || "Correct implementation", result);
+    if (feedback) result.aiFeedback = feedback;
   }
-});
+  res.status(status).json(result);
+}));
 
-// Assessment: Conceptual Explanation Evaluation (Milestone Exam Part E)
-app.post("/api/assess-explanation", async (req, res) => {
-  try {
-    const { question, studentAnswer, rubricKeywords = [], maxPoints = 10 } = req.body;
+// Exam explanations use server-selected question-specific rubrics; never keyword or outage credit.
+app.post("/api/assess-explanation", access.authenticate, access.limited("execution", createExplanationHandler({
+  model: () => process.env.EXAM_GRADING_MODEL || DEFAULT_EXPLANATION_MODEL,
+  judge: input => {
     const ai = getAIClient();
-
-    if (!ai || !studentAnswer || !studentAnswer.trim()) {
-      return res.json({
-        score: 0,
-        maxPoints,
-        feedback: "Please provide an explanation to receive points.",
-        coveredKeywords: [],
-        missedKeywords: rubricKeywords,
-        aiEvaluated: true,
-      });
-    }
-
-    const prompt = `You are evaluating a student's answer to a senior C++ interview conceptual question.
-Question: "${question}"
-Rubric Keywords expected: ${JSON.stringify(rubricKeywords)}
-Max Points: ${maxPoints}
-
-Student Answer:
-"${studentAnswer}"
-
-Evaluate whether the explanation demonstrates true technical understanding (memory mechanics, runtime vs compile-time behavior, standard semantics).
-Return JSON strictly in this structure:
-{
-  "score": number (between 0 and ${maxPoints}),
-  "feedback": "2-3 sentences evaluating the answer's technical accuracy and depth",
-  "coveredKeywords": ["list of rubric concepts student correctly explained"],
-  "missedKeywords": ["list of rubric concepts omitted or described inaccurately"],
-  "idealAnswerSummary": "Concise senior engineer model response"
-}`;
-
-    const response = await generateContentWithResilience(ai, {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.2,
-      },
-    });
-
-    const data = JSON.parse(response.text || "{}");
-    return res.json({
-      ...data,
-      maxPoints,
-      aiEvaluated: true,
-    });
-  } catch (err: any) {
-    return res.json({
-      score: 0,
-      maxPoints: req.body.maxPoints || 10,
-      feedback: "Explanation evaluation is temporarily unavailable.",
-      coveredKeywords: [],
-      missedKeywords: [],
-      aiEvaluated: true,
-    });
-  }
-});
+    if (!ai) return Promise.reject(new Error("Explanation grading is not configured"));
+    return judgeExplanationWithGemini(ai, input);
+  },
+})));
 
 // Mock Interview AI Agent endpoint
-app.post("/api/mock-interview", async (req, res) => {
+app.post("/api/mock-interview", access.authenticate, access.limited("execution", async (req, res) => {
   try {
     const {
       history = [],
@@ -487,7 +379,21 @@ Return JSON strictly matching this schema:
       });
 
       const report = JSON.parse(response.text || "{}");
-      return res.json({ report });
+      if (!Number.isFinite(report.overallScore) || report.overallScore < 0 || report.overallScore > 100 ||
+        !Array.isArray(report.categories) || report.categories.length > 10 ||
+        report.categories.some((entry: any) => !Number.isFinite(entry.score) || entry.score < 0 || entry.score > 100 ||
+          typeof entry.category !== 'string' || typeof entry.notes !== 'string' ||
+          !['Strong', 'Developing', 'Needs Practice', 'Needs Review'].includes(entry.rating)) ||
+        ['strengths', 'weaknesses', 'missedConcepts'].some(key => !Array.isArray(report[key]) || report[key].length > 20 ||
+          report[key].some((value: any) => typeof value !== 'string' || value.length > 2000)) ||
+        !Array.isArray(report.recommendedModules)) throw new HttpError(503, 'Invalid interview report.');
+      const stored = { id: randomUUID(), timestamp: Date.now(), preset,
+        overallScore: report.overallScore, passed: report.overallScore >= 70, categories: report.categories,
+        strengths: report.strengths, weaknesses: report.weaknesses, missedConcepts: report.missedConcepts,
+        recommendedModules: report.recommendedModules };
+      await trustedProgress.mutate(res.locals.principal, current => ({ ...current,
+        mockInterviewReports: [stored, ...(current.mockInterviewReports || [])] }));
+      return res.json({ report: stored });
     }
 
     // Interactive Interviewer behavior (Requirement 11):
@@ -526,10 +432,10 @@ Interviewer Behavioral Rules:
     const reply = response.text || "Could you explain the memory layout implications of that choice?";
     return res.json({ reply });
   } catch (err: any) {
-    console.error("Mock interview error:", err);
+    console.error("Mock interview service failed.");
     return res.status(500).json({ error: "Failed to generate interviewer response" });
   }
-});
+}));
 
 // Setup Vite or Static File Serving
 async function startServer() {

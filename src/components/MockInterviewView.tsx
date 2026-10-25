@@ -1,3 +1,4 @@
+import { authenticatedFetch } from "../lib/authenticatedFetch";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Brain,
@@ -96,7 +97,7 @@ export const MockInterviewView: React.FC<MockInterviewViewProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/mock-interview", {
+      const response = await authenticatedFetch("/api/mock-interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -159,7 +160,7 @@ export const MockInterviewView: React.FC<MockInterviewViewProps> = ({
     setPhaseIndex(nextPhaseIdx);
 
     try {
-      const response = await fetch("/api/mock-interview", {
+      const response = await authenticatedFetch("/api/mock-interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -199,7 +200,7 @@ export const MockInterviewView: React.FC<MockInterviewViewProps> = ({
     setErrorMsg(null);
 
     try {
-      const response = await fetch("/api/mock-interview", {
+      const response = await authenticatedFetch("/api/mock-interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -217,27 +218,8 @@ export const MockInterviewView: React.FC<MockInterviewViewProps> = ({
       }
 
       const data = await response.json();
-      const generatedReport: MockInterviewReport = {
-        id: "rep-" + Date.now(),
-        timestamp: Date.now(),
-        preset,
-        overallScore: data.report?.overallScore || 72,
-        passed: Boolean(data.report?.passed),
-        categories: data.report?.categories || [
-          { category: "C++ Fundamentals", score: 75, rating: "Developing", notes: "Good syntax basics" },
-          { category: "Memory Management & Pointers", score: 70, rating: "Developing", notes: "Review RAII and unique_ptr" },
-          { category: "STL & Containers", score: 80, rating: "Strong", notes: "Solid container choices" },
-          { category: "OOP & Systems Architecture", score: 65, rating: "Needs Practice", notes: "Review virtual destructors and vtable" },
-          { category: "Communication & Reasoning", score: 75, rating: "Developing", notes: "Articulates trade-offs" },
-        ],
-        strengths: data.report?.strengths || ["Understands container complexity trade-offs", "Clean reasoning"],
-        weaknesses: data.report?.weaknesses || ["Deep vtable layout", "Exception safety in constructors"],
-        missedConcepts: data.report?.missedConcepts || ["Empty Base Optimization", "Strong exception safety"],
-        recommendedModules: data.report?.recommendedModules || [
-          { moduleId: "week-5", title: "Pointers & Dynamic Memory" },
-          { moduleId: "week-19", title: "Polymorphism & Vtables" },
-        ],
-      };
+      if (!data.report || typeof data.report.id !== "string" || !Number.isFinite(data.report.overallScore)) throw new Error("Invalid report");
+      const generatedReport: MockInterviewReport = data.report;
 
       setReport(generatedReport);
       setScreen("report");

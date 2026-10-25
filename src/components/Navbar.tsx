@@ -12,12 +12,12 @@ import {
   ShieldAlert
 } from "lucide-react";
 import { UserProgress } from "../types";
-import { calculateOverallProgress } from "../data/curriculum";
+import { calculateOverallProgress } from "../data/curriculumSummary";
 import { type User } from "firebase/auth";
 import { useAssessment } from "../lib/AssessmentContext";
 
 interface NavbarProps {
-  currentView: "roadmap" | "unit" | "exam" | "mock-interview" | "readiness";
+  currentView: "roadmap" | "unit" | "exam" | "mock-interview" | "readiness" | "interview-practice";
   progress: UserProgress;
   currentUser: User | null;
   onNavigateHome: () => void;

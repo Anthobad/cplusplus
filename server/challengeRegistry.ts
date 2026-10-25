@@ -1,4 +1,6 @@
 import { RunnerTestCase, Comparator } from "./codeRunner.js";
+import { EXAM_SERVER_CHALLENGES } from './examChallengeRegistry.js';
+import { INTERVIEW_SERVER_CHALLENGES } from './interviewChallengeRegistry.js';
 
 export interface ServerCodingChallenge {
   id: string;
@@ -7,9 +9,13 @@ export interface ServerCodingChallenge {
   comparator?: Comparator;
   publicTests: RunnerTestCase[];
   hiddenTests: RunnerTestCase[];
+  sourcePrefix?: string;
+  alwaysUseDriver?: boolean;
 }
 
 export const SERVER_CHALLENGE_REGISTRY: Record<string, ServerCodingChallenge> = {
+  ...EXAM_SERVER_CHALLENGES,
+  ...INTERVIEW_SERVER_CHALLENGES,
   "cc-t1": {
     "id": "cc-t1",
     "title": "Standard Console Output",

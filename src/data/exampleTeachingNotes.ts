@@ -1,0 +1,36 @@
+import type { CodeExample } from '../types';
+
+const notes: Record<number, [string, string[]]> = {
+  1: ['Read each statement in main and follow the call’s returned value into the output expression. Function syntax here previews Topic 9.', ['Hosted programs use main as their entry function', 'Output and exit status are different']],
+  2: ['The example combines built-in types with std::string, a library class. Explicit initializers establish values before use.', ['Query implementation sizes instead of assuming them', 'Ordinary block locals end their lifetime on scope exit']],
+  5: ['This example illustrates a small rounding difference. Its fixed tolerance is a sample policy; choose tolerances and NaN/infinity handling for the application.', ['Exact equality can be appropriate for exact requirements', 'Approximate measurements need an explicit tolerance policy']],
+  6: ['The example configures streams before use and formats a floating result. Untying cin removes its automatic cout flush, so interactive prompts may need an explicit flush.', ['Newline separates lines; endl also flushes', 'Performance depends on the workload']],
+  9: ['A const-reference parameter borrows an existing object without a parameter copy; a mutable reference permits changes to the caller’s object.', ['Borrowed objects must remain alive', 'const restricts this access path']],
+  10: ['A view can borrow characters from a live string or a string literal without copying the text. Creating a string_view substring is different from owning string::substr.', ['Views do not own their characters', 'Do not return a view into a destroyed local string']],
+  11: ['Within the live array, ptr + 1 selects the next int. Its byte distance depends on sizeof(int), not a universal four-byte rule.', ['Array arithmetic scales by element type', 'One-past pointers are not dereferenceable']],
+  12: ['argc is nonnegative, argv[argc] is null, and provided arguments are null-terminated strings. Check argc before accessing a requested argument. The spelling of argv[0] depends on the environment.', ['Validate argument counts', 'The executable name is environment-dependent']],
+  14: ['Catching a standard exception by const reference avoids a copy and preserves derived exception information. A noexcept annotation is appropriate only when escaping exceptions are prohibited.', ['Understand the operation’s exception guarantee', 'noexcept violations call terminate']],
+  15: ['This raw-owning buffer example makes copying and cleanup explicit. The Rule of Zero is preferable when standard members can manage the resource.', ['Implement or prohibit copying for raw exclusive ownership', 'Copy-and-swap needs valid copy and nonthrowing swap operations']],
+  16: ['Ordinary scope exit destroys the automatic object at its lifetime boundary. This specifies cleanup order, not a fixed physical storage location or duration.', ['RAII binds cleanup to object lifetime', 'Measure cleanup costs when latency matters']],
+  17: ['count_if traverses the range and invokes its predicate for each element. The lambda’s concrete type permits specialization and possible inlining.', ['Algorithms impose iterator/callable requirements', 'Inlining is an optimization choice']],
+  19: ['reserve(100) requests capacity of at least 100 without adding elements. Appending within that capacity can avoid relocation, but other edits have their own invalidation rules.', ['size counts elements; capacity counts room', 'Contiguous storage can improve locality, not guarantee cache hits']],
+  20: ['This whole-list splice transfers nodes without copying elements and empties the source. The constant-time statement applies to this overload under its allocator requirements.', ['Finding a position can still take linear time', 'Erasing a node invalidates its handles']],
+  21: ['set provides ordered keys with logarithmic key operations; unordered_set provides hashing with average constant-time and worst-case linear lookup.', ['Unordered iteration is unspecified', 'Choose ordering versus hashing from requirements']],
+  23: ['The stack records unmatched opening parentheses. A closing parenthesis requires a matching pending opening before removal.', ['Check nonempty before top or pop', 'Copy top before removal if the value must survive']],
+  25: ['Insertion preserves the demonstrated BST duplicate policy. In-order traversal is sorted because of that invariant; an arbitrary binary tree need not be ordered.', ['Search cost depends on height', 'Node ownership and cleanup must be specified']],
+  27: ['remove compacts the retained prefix and erase removes the trailing elements. In C++20, std::erase provides a container-aware alternative.', ['remove alone leaves size unchanged', 'Erasure need not release vector capacity']],
+  28: ['The example constructs a base before its derived layer and converts to an accessible, unambiguous base view.', ['Public inheritance requires a valid base contract', 'Unchecked downcasting needs independent proof']],
+  29: ['A pure virtual method makes Shape abstract until implemented by a derived class. A virtual destructor permits the shown polymorphic deletion.', ['Use a destructor policy appropriate to base deletion', 'override checks the overriding signature']],
+  32: ['Template argument deduction selects suitable types and checks their operations. Emitted machine code is still subject to optimization.', ['Definitions usually need instantiation-site visibility', 'Explicit instantiation permits other organizations']],
+  33: ['Each counter update follows the same mutex protocol, and joins finish workers before the final read.', ['Join or otherwise manage every joinable thread lifetime', 'All conflicting accesses need the synchronization protocol']],
+  34: ['Repeated halving produces logarithmically many iterations. This is a growth statement, not a guaranteed latency for large inputs.', ['State the counted operation and input size', 'Amortized and average-case analysis differ']],
+  35: ['The endpoint swaps use a fixed number of indices and temporary values, so auxiliary space is constant while input storage remains linear.', ['Include live recursion depth in space analysis', 'State whether output storage is counted separately']],
+  36: ['Sortedness allows each too-small or too-large endpoint candidate to be safely eliminated. Each boundary moves in one direction.', ['Validate the sorted-input precondition', 'Include preprocessing and numeric range in the analysis']],
+  37: ['sort orders this random-access range using the comparator. A library may use an introsort-like hybrid, but its exact algorithm and inlining are not prescribed.', ['sort provides O(n log n) comparisons', 'Use stable_sort when equivalent records must preserve relative order']],
+  38: ['For a sorted vector, lower/upper bounds delimit equivalent values with logarithmic search and constant-time iterator subtraction.', ['Bounds describe insertion positions', 'Iterator movement costs differ on non-random-access ranges']],
+};
+
+export function withExampleTeachingNotes(topic: number, examples: CodeExample[]): CodeExample[] {
+  const note = notes[topic];
+  return note ? examples.map(example => ({ ...example, explanation: note[0], keyTakeaways: note[1] })) : examples;
+}

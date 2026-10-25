@@ -1,6 +1,7 @@
 import { Exam } from "../types";
+import { withAssessmentCorrections } from './assessmentContent.js';
 
-export const CURRICULUM_EXAMS: Exam[] = [
+export const CURRICULUM_EXAMS: Exam[] = withAssessmentCorrections([
   {
     id: "exam-foundations",
     title: "Milestone Exam 1: Language Basics",
@@ -379,4 +380,4 @@ void removeSpaces(std::string& s) {
       }
     ]
   }
-];
+]);

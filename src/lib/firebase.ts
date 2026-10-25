@@ -13,18 +13,15 @@ import {
 } from "firebase/auth";
 import { 
   getFirestore, 
-  doc, 
-  setDoc, 
-  getDoc, 
+  doc,
   collection, 
   getDocs, 
-  query, 
-  orderBy,
   getDocFromServer
 } from "firebase/firestore";
 import firebaseConfig from "../../firebase-applet-config.json";
 import { UserProgress, ExamAttempt } from "../types";
-import { migrateUserProgress } from "../data/curriculum";
+import { trustedRequest } from "./authenticatedFetch";
+import { migrateUserProgress } from "../data/curriculumSummary";
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -158,163 +155,63 @@ export async function loadUserProgress(userId?: string): Promise<UserProgress> {
   return migrateUserProgress(result);
 }
 
+export function cacheTrustedProgress(progress: UserProgress, userId?: string): UserProgress {
+  const uid = userId || (auth.currentUser?.isAnonymous ? "guest" : auth.currentUser?.uid) || "guest";
+  const value = { ...progress, userId: uid };
+  const key = getProgressKey(uid);
+  try {
+    const old = localStorage.getItem(key);
+    if (old && !localStorage.getItem(`${key}_legacy_archive`)) localStorage.setItem(`${key}_legacy_archive`, old);
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch { /* The server result remains authoritative when local storage is unavailable. */ }
+  return value;
+}
+
+export function cacheTrustedExam(attempt: ExamAttempt, progress: UserProgress, userId?: string) {
+  const uid = userId || (auth.currentUser?.isAnonymous ? 'guest' : auth.currentUser?.uid) || 'guest';
+  try {
+    const key = getExamsKey(uid);
+    const history: ExamAttempt[] = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!history.some(entry => entry.id && entry.id === attempt.id)) history.unshift(attempt);
+    localStorage.setItem(key, JSON.stringify(history));
+  } catch { /* Cloud history is already committed; never fabricate a failed grade. */ }
+  return cacheTrustedProgress(progress, uid);
+}
+
 async function loadUserProgressRaw(userId?: string): Promise<UserProgress> {
-  const isGuest = !userId || userId === "guest" || (!auth.currentUser && (!userId || userId === "guest"));
-  const uid = isGuest ? "guest" : (userId || auth.currentUser?.uid || "guest");
-  const storageKey = getProgressKey(uid);
-  
-  if (uid === "guest") {
-    // Guest progress is isolated to guest localStorage key
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return {
-          ...getCleanGuestProgress(),
-          ...parsed,
-          userId: "guest",
-          unlockedUnits: Array.from(new Set(["topic-1", ...(parsed.unlockedUnits || [])]))
-        };
-      }
-    } catch (e) {
-      console.error("Failed to read guest progress from localStorage", e);
-    }
-    return getCleanGuestProgress();
+  const uid = userId || "guest";
+  if (auth.currentUser && (uid === "guest" ? auth.currentUser.isAnonymous : auth.currentUser.uid === uid)) {
+    try { return cacheTrustedProgress(await trustedRequest<UserProgress>("/api/progress"), uid); }
+    catch (error) { console.warn("Trusted progress unavailable; cached history is display-only."); }
   }
-
-  // Try local storage first for instant response for registered user
-  let cached: UserProgress = { ...DEFAULT_PROGRESS, userId: uid };
   try {
-    const raw = localStorage.getItem(storageKey);
-    if (raw) {
-      cached = { ...DEFAULT_PROGRESS, ...JSON.parse(raw), userId: uid };
-      // Sanitize examAttempts to guarantee that any attempt with score < 50 can NEVER be marked as passed
-      if (cached.examAttempts) {
-        for (const [eId, att] of Object.entries(cached.examAttempts)) {
-          if (att && (typeof att.score !== "number" || att.score < 50)) {
-            cached.examAttempts[eId] = { ...att, passed: false };
-          }
-        }
-      }
-    }
-  } catch (e) {
-    console.error("Failed to read progress from localStorage", e);
-  }
-
-  if (!auth.currentUser || auth.currentUser.uid !== uid) {
-    return cached;
-  }
-
-  try {
-    const docRef = doc(db, "users", uid);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      const data = snap.data() as Partial<UserProgress>;
-      const merged: UserProgress = {
-        ...DEFAULT_PROGRESS,
-        ...cached,
-        ...data,
-        userId: uid,
-        unlockedUnits: Array.from(new Set(["topic-1", ...(data.unlockedUnits || cached.unlockedUnits || [])])),
-      };
-      // Sanitize examAttempts to guarantee that any attempt with score < 50 can NEVER be marked as passed
-      if (merged.examAttempts) {
-        for (const [eId, att] of Object.entries(merged.examAttempts)) {
-          if (att && (typeof att.score !== "number" || att.score < 50)) {
-            merged.examAttempts[eId] = { ...att, passed: false };
-          }
-        }
-      }
-      localStorage.setItem(storageKey, JSON.stringify(merged));
-      return merged;
-    } else {
-      // Initialize remote user profile
-      const initial = {
-        ...cached,
-        studentEmail: auth.currentUser.email || "",
-        studentName: auth.currentUser.displayName || cached.studentName || "C++ Explorer",
-      };
-      await setDoc(docRef, initial, { merge: true });
-      return initial;
-    }
-  } catch (err) {
-    console.warn("Could not fetch remote Firestore progress, using local cache:", err);
-    return cached;
-  }
+    const cached = localStorage.getItem(getProgressKey(uid));
+    if (cached) return { ...getCleanGuestProgress(), ...JSON.parse(cached), userId: uid };
+  } catch {}
+  return { ...getCleanGuestProgress(), userId: uid };
 }
 
-// Save Student Progress
+// Profile-only compatibility helper. Assessment fields never leave the browser here.
 export async function saveUserProgress(progress: UserProgress, userId?: string): Promise<void> {
-  const uid = userId || auth.currentUser?.uid || progress.userId || "guest";
-  const storageKey = getProgressKey(uid);
-
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(progress));
-  } catch (e) {
-    console.error("Failed to cache progress to localStorage", e);
-  }
-
-  if (!auth.currentUser || uid === "guest") return;
-
-  try {
-    const docRef = doc(db, "users", uid);
-    await setDoc(docRef, progress, { merge: true });
-  } catch (err) {
-    console.warn("Could not save progress to Firestore:", err);
-  }
+  const result = await trustedRequest<UserProgress>("/api/progress/profile", {
+    studentName: progress.studentName, studentLevel: progress.studentLevel,
+  });
+  cacheTrustedProgress(result, userId);
 }
 
-// Save Exam Attempt and update UserProgress
-export async function saveExamAttempt(attempt: ExamAttempt, userId?: string): Promise<UserProgress> {
-  const uid = userId || auth.currentUser?.uid || "guest";
-  const storageKey = getExamsKey(uid);
+export async function completeUnit(unitId: string, userId?: string): Promise<UserProgress> {
+  return cacheTrustedProgress(await trustedRequest<UserProgress>("/api/progress/complete", { unitId }), userId);
+}
 
-  // STRICT RULE: An attempt is ONLY passed if score >= 50 AND passed is true.
-  // 20/100 or anything below 50 is strictly false!
-  const isStrictlyPassed = Boolean(attempt.score >= 50 && attempt.passed);
-  const normalizedAttempt: ExamAttempt = {
-    ...attempt,
-    passed: isStrictlyPassed
-  };
+export async function submitQuiz(quizId: string, answers: Record<string, number>) {
+  const result = await trustedRequest<{ score: number; passed: boolean; progress: UserProgress }>("/api/progress/quiz", { quizId, answers });
+  cacheTrustedProgress(result.progress);
+  return result;
+}
 
-  try {
-    const raw = localStorage.getItem(storageKey);
-    const existing: ExamAttempt[] = raw ? JSON.parse(raw) : [];
-    existing.unshift(normalizedAttempt);
-    localStorage.setItem(storageKey, JSON.stringify(existing));
-  } catch (e) {
-    console.error("Failed to save exam to localStorage", e);
-  }
-
-  // Update UserProgress with this normalized attempt so Roadmap and progression reflect it immediately
-  const currentProgress = await loadUserProgress(uid);
-  const updatedProgress: UserProgress = {
-    ...currentProgress,
-    examAttempts: {
-      ...currentProgress.examAttempts,
-      [attempt.examId]: {
-        ...normalizedAttempt,
-        score: normalizedAttempt.score,
-        passed: isStrictlyPassed,
-        timestamp: Date.now()
-      }
-    },
-    lastActiveTimestamp: Date.now()
-  };
-
-  await saveUserProgress(updatedProgress, uid);
-
-  if (auth.currentUser && uid !== "guest") {
-    try {
-      const attemptId = attempt.id || `attempt_${Date.now()}`;
-      const docRef = doc(db, "users", uid, "exams", attemptId);
-      await setDoc(docRef, { ...normalizedAttempt, id: attemptId });
-    } catch (err) {
-      console.warn("Failed to persist exam attempt to Firestore:", err);
-    }
-  }
-
-  return updatedProgress;
+// Client-computed exam totals must never be persisted as authoritative results.
+export async function saveExamAttempt(_attempt: ExamAttempt, _userId?: string): Promise<UserProgress> {
+  throw new Error("Submit answers through a server-issued exam session instead.");
 }
 
 // Load Exam History
@@ -334,13 +231,17 @@ export async function loadExamHistory(userId?: string): Promise<ExamAttempt[]> {
 
   try {
     const colRef = collection(db, "users", uid, "exams");
-    const q = query(colRef, orderBy("completedAt", "desc"));
-    const snap = await getDocs(q);
+    // Older saved attempts may have no completedAt field; ordering by it omits them.
+    const snap = await getDocs(colRef);
     if (!snap.empty) {
       const remoteExams: ExamAttempt[] = [];
-      snap.forEach((d) => remoteExams.push(d.data() as ExamAttempt));
-      localStorage.setItem(storageKey, JSON.stringify(remoteExams));
-      return remoteExams;
+      snap.forEach((d) => remoteExams.push({ ...d.data(), id: d.id } as ExamAttempt));
+      const identity = (attempt: ExamAttempt) => attempt.id || `${attempt.examId}:${attempt.timestamp}:${attempt.score}`;
+      const merged = new Map(localExams.map(attempt => [identity(attempt), attempt]));
+      for (const attempt of remoteExams) merged.set(identity(attempt), attempt);
+      const history = [...merged.values()].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      localStorage.setItem(storageKey, JSON.stringify(history));
+      return history;
     }
   } catch (err) {
     console.warn("Could not fetch exam history from Firestore:", err);
@@ -352,69 +253,13 @@ export async function loadExamHistory(userId?: string): Promise<ExamAttempt[]> {
 // Aliases for progressive learning interface
 export const getUserProgress = loadUserProgress;
 
-export async function saveQuizScore(
-  userId: string,
-  quizId: string,
-  score: number,
-  passed: boolean
-): Promise<UserProgress> {
-  const current = await loadUserProgress(userId);
-  const updated: UserProgress = {
-    ...current,
-    quizScores: {
-      ...current.quizScores,
-      [quizId]: {
-        score,
-        passed,
-        attempts: (current.quizScores?.[quizId]?.attempts || 0) + 1,
-        timestamp: Date.now()
-      }
-    },
-    unitQuizScores: {
-      ...current.unitQuizScores,
-      [quizId]: {
-        score,
-        passed,
-        attempts: (current.unitQuizScores?.[quizId]?.attempts || 0) + 1,
-        timestamp: new Date().toISOString()
-      }
-    },
-    lastActiveDate: new Date().toISOString().split("T")[0],
-    lastActiveTimestamp: Date.now()
-  };
-
-  await saveUserProgress(updated, userId);
-  return updated;
+export async function saveQuizScore(_userId: string, _quizId: string, _score: number, _passed: boolean): Promise<UserProgress> {
+  throw new Error("Quiz answers must be graded by the trusted server.");
 }
 
-// Reset Student Progress across local storage and Firestore
 export async function resetUserProgress(userId?: string): Promise<UserProgress> {
-  const uid = userId || auth.currentUser?.uid || "guest";
-  const reset: UserProgress = {
-    ...DEFAULT_PROGRESS,
-    userId: uid,
-    studentName: auth.currentUser?.displayName || "C++ Explorer",
-    lastActiveTimestamp: Date.now(),
-    lastActiveDate: new Date().toISOString().split("T")[0],
-  };
-
-  const storageKey = getProgressKey(uid);
-  const examsKey = getExamsKey(uid);
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(reset));
-    localStorage.removeItem(examsKey);
-  } catch (e) {
-    console.error("Failed to reset localStorage progress", e);
-  }
-
-  if (auth.currentUser && uid !== "guest") {
-    try {
-      const docRef = doc(db, "users", uid);
-      await setDoc(docRef, reset);
-    } catch (err) {
-      console.warn("Could not reset Firestore progress:", err);
-    }
-  }
-
-  return reset;
+  const result = await trustedRequest<UserProgress>("/api/progress/reset", {});
+  const uid = userId || "guest";
+  localStorage.removeItem(getExamsKey(uid));
+  return cacheTrustedProgress(result, uid);
 }
