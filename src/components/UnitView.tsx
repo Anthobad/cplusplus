@@ -52,6 +52,11 @@ export const UnitView: React.FC<UnitViewProps> = ({
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
 
+  useEffect(() => () => {
+    setAssessmentMode("none");
+    setAssessmentTitle(undefined);
+  }, [setAssessmentMode, setAssessmentTitle]);
+
   // Reset assessment mode when moving away from challenge tab
   useEffect(() => {
     if (activeTab !== "challenge") {
@@ -561,6 +566,7 @@ export const UnitView: React.FC<UnitViewProps> = ({
         {activeTab === "challenge" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <CodeChallengeEditor
+              key={unit.exercises.codingChallenge.id}
               challenge={unit.exercises.codingChallenge}
               initialMode="practice"
               onModeChange={(m) => {

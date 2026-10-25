@@ -1,5 +1,5 @@
 import { authenticatedFetch } from "../lib/authenticatedFetch";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Play,
   CheckCircle2,
@@ -41,8 +41,17 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalResult, setEvalResult] = useState<CodeEvaluationResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const pendingEvaluation = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    pendingEvaluation.current?.abort();
+    pendingEvaluation.current = null;
+  }, []);
 
   const handleToggleMode = (newMode: "practice" | "assessment") => {
+    pendingEvaluation.current?.abort();
+    pendingEvaluation.current = null;
+    setIsEvaluating(false);
     setMode(newMode);
     setShowSolution(false);
     setEvalResult(null);
@@ -59,6 +68,10 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
   };
 
   const handleRunEvaluation = async () => {
+    pendingEvaluation.current?.abort();
+    const controller = new AbortController();
+    pendingEvaluation.current = controller;
+    const isCurrent = () => pendingEvaluation.current === controller && !controller.signal.aborted;
     setIsEvaluating(true);
     setEvalResult(null);
     setErrorMessage(null);
@@ -78,6 +91,7 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(submission),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -85,6 +99,7 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
       }
 
       const data: CodeEvaluationResult = await response.json();
+      if (!isCurrent()) return;
       setEvalResult(data);
 
       if (data.configurationError) {
@@ -100,6 +115,7 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
         onPracticeSuccess();
       }
     } catch (_err: any) {
+      if (!isCurrent()) return;
       // RULE 1: Never fabricate a pass or score on infrastructure error.
       // Must display unavailable message without modifying progress.
       setErrorMessage("Code evaluation is temporarily unavailable. Your attempt was not counted.");
@@ -116,7 +132,10 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
         verified: false,
       });
     } finally {
-      setIsEvaluating(false);
+      if (isCurrent()) {
+        setIsEvaluating(false);
+        pendingEvaluation.current = null;
+      }
     }
   };
 

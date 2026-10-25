@@ -21,9 +21,9 @@ export default function DomainUnitView({ unitId, ...props }: Props) {
     return () => { active = false; };
   }, [unitId, retry]);
 
-  const ready = unit?.id === getUnitById(unitId)?.id;
+  const ready = Boolean(unit && unit.id === getUnitById(unitId)?.id);
   return <>
-    {unit && <div hidden={!ready} inert={!ready ? true : undefined}><UnitView {...props} unit={unit} /></div>}
+    {ready && unit && <UnitView key={unit.id} {...props} unit={unit} />}
     {!ready && <div className="p-8 text-slate-300 space-y-4">
     {failedId === unitId ? <>
       <p role="alert">This lesson could not be loaded. Check your connection and try again. If the problem persists after an update, reload the page.</p>
