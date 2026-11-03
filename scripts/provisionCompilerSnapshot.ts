@@ -3,15 +3,15 @@ import { Sandbox, Snapshot } from '@vercel/sandbox';
 import { config } from 'dotenv';
 import { writeFile } from 'node:fs/promises';
 import { confirmHobbyProject } from './sandboxMaintenance.js';
-import { compilerVersion, provisionCommand, provisioningPolicy, environmentFiles, setupCommand, snapshotExpirationMs, snapshotMaxAgeMs } from '../server/sandbox/compilerEnvironment.js';
+import { compilerVersion, provisionCommand, provisioningPolicy, environmentFiles, setupCommand, snapshotExpirationMs } from '../server/sandbox/compilerEnvironment.js';
 import { compilerSnapshot } from '../server/sandbox/compilerSnapshot.js';
 
 config({ path: '.env.local', quiet: true });
 await confirmHobbyProject();
-if (compilerSnapshot?.version === compilerVersion && Date.now() - compilerSnapshot.createdAt < snapshotMaxAgeMs) {
+if (compilerSnapshot?.version === compilerVersion) {
   try {
     const existing = await Snapshot.get({ snapshotId: compilerSnapshot.snapshotId });
-    if (existing.status === 'created') {
+    if (existing.status === 'created' && !existing.expiresAt) {
       console.log(JSON.stringify({ reused: true, ...compilerSnapshot }));
       process.exit(0);
     }
@@ -40,6 +40,7 @@ try {
   if (protectedFiles.exitCode !== 0) throw new Error('Trusted supervisor installation failed');
   // This builder never receives student source, test inputs/answers, repository contents or secrets.
   const snapshot = await builder.snapshot({ expiration: snapshotExpirationMs, signal: AbortSignal.timeout(30000) });
+  if (snapshot.expiresAt) throw new Error('Provider returned an expiring snapshot; no pointer will be published.');
   const metadata = { snapshotId: snapshot.snapshotId, version: compilerVersion, createdAt: Date.now() };
   await writeFile('server/sandbox/compilerSnapshot.ts', '// Generated trusted compiler snapshot; contains no credentials or submission data.\nexport const compilerSnapshot = ' + JSON.stringify(metadata, null, 2) + ';\n');
   console.log(JSON.stringify({ ...metadata, compilerIdentity, sizeBytes: snapshot.sizeBytes, expiresAt: snapshot.expiresAt, elapsedMs: performance.now() - started, plan: 'hobby', idleSandbox: false }));

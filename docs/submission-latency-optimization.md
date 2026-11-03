@@ -1,5 +1,8 @@
 # C++ submission latency optimization
 
+> The original seven-day snapshot policy below was replaced on 3 November 2026. See [current snapshot retention](compiler-snapshot-retention.md).
+
+
 Implemented locally on 14 October 2026. The optimized code has NOT been deployed or verified on the production URL. Deployment and production cold/warm frontend measurements require the user's approval under `specs/reduce-compilation-time.md`.
 
 ## Changes

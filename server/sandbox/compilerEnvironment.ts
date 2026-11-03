@@ -14,8 +14,8 @@ install -d -m 700 /opt/cpp-runner
 apt-get clean
 rm -rf /var/lib/apt/lists/*`;
 export const compilerVersion = createHash('sha256').update('cpp-toolchain-v1\n' + provisionCommand + supervisorSource).digest('hex');
-export const snapshotExpirationMs = 7 * 24 * 60 * 60 * 1000;
-export const snapshotMaxAgeMs = 7 * 24 * 60 * 60 * 1000;
+// Provider-supported non-expiring trusted image; compatibility is checked by hash.
+export const snapshotExpirationMs = 0;
 export const setupCommand = 'mv /vercel/supervisor.py /opt/cpp-runner/supervisor.py && mv /vercel/compiler-version /opt/cpp-runner/version && chown -R root:root /opt/cpp-runner && chmod -R go-rwx /opt/cpp-runner';
 export const environmentFiles = () => [
   { path: '/vercel/supervisor.py', content: Buffer.from(supervisorSource) },

@@ -1,7 +1,7 @@
 import { Sandbox } from '@vercel/sandbox';
 import type { CodeRunner, RunnerRequest, RunnerResult } from './codeRunner.js';
 import { compareOutputs } from './codeRunner.js';
-import { compilerVersion, environmentFiles, provisionCommand, provisioningPolicy, setupCommand, snapshotMaxAgeMs } from './sandbox/compilerEnvironment.js';
+import { compilerVersion, environmentFiles, provisionCommand, provisioningPolicy, setupCommand } from './sandbox/compilerEnvironment.js';
 import { compilerSnapshot } from './sandbox/compilerSnapshot.js';
 import { recordRunnerTiming } from './submissionPerformance.js';
 export { provisionCommand } from './sandbox/compilerEnvironment.js';
@@ -21,7 +21,7 @@ export interface ProcessOutcome {
 export interface RunnerTiming {
   phases: Record<string, number>; sdkCalls: number; snapshotHit: boolean;
   recovery?: string; totalMs: number; compilationMs?: number; executionMs?: number;
-  snapshotSelection?: { configured: boolean; snapshotId?: string; versionMatches: boolean; ageMs?: number; maxAgeMs: number };
+  snapshotSelection?: { configured: boolean; snapshotId?: string; versionMatches: boolean; ageMs?: number; maxAgeMs: null };
   cleanupSucceeded?: boolean;
 }
 
@@ -77,8 +77,8 @@ export class VercelSandboxCodeRunner implements CodeRunner {
     const configured = this.options.snapshot === undefined ? compilerSnapshot : this.options.snapshot;
     timing.snapshotSelection = { configured: Boolean(configured), snapshotId: configured?.snapshotId,
       versionMatches: configured?.version === compilerVersion, ageMs: configured ? Date.now() - configured.createdAt : undefined,
-      maxAgeMs: snapshotMaxAgeMs };
-    const candidate = configured && configured.version === compilerVersion && Date.now() - configured.createdAt < snapshotMaxAgeMs ? configured : null;
+      maxAgeMs: null };
+    const candidate = configured && configured.version === compilerVersion ? configured : null;
     const common = { persistent: false, resources: { vcpus: 1 }, timeout: SANDBOX_LIMITS.lifetimeMs, signal: AbortSignal.timeout(30000) };
     let sandbox: SandboxClient | undefined;
     try {
@@ -94,7 +94,7 @@ export class VercelSandboxCodeRunner implements CodeRunner {
           if (!['snapshot_not_found', 'snapshot_expired'].includes(code || '')) throw error;
           timing.recovery = code;
         } finally { timing.phases.snapshotRestoration = performance.now() - restorationStarted; }
-      } else timing.recovery = configured ? 'snapshot_version_or_age_mismatch' : 'snapshot_not_configured';
+      } else timing.recovery = configured ? 'snapshot_version_mismatch' : 'snapshot_not_configured';
       if (!sandbox) {
         sandbox = await timed('sandboxCreation', () => this.createSandbox({ ...common, image: 'vercel/sandbox/ubuntu:latest', networkPolicy: provisioningPolicy }));
         const provision = await timed('aptProvisioning', () => sandbox!.runCommand({

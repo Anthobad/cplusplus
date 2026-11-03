@@ -1,5 +1,8 @@
 # Production submission latency investigation — 25 October 2026
 
+> Update, 3 November 2026: the seven-day retention and age cutoff described in this historical investigation are superseded by [non-expiring compiler snapshot maintenance](compiler-snapshot-retention.md). The replacement snapshot is ready locally; deployment and production timing verification are still required.
+
+
 The production bottleneck is confirmed in live logs: every measured submission rebuilt the compiler environment. The deployed snapshot pointer was over eleven days old, beyond the seven-day freshness limit. Its metadata lookup returned `not_found`. A refreshed GCC 15 snapshot and per-request instrumentation are ready locally. **No deployment has been performed, so production after-change latency is not yet measured.**
 
 ## Production evidence

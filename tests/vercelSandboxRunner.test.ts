@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VercelSandboxCodeRunner, SANDBOX_LIMITS, provisionCommand } from '../server/vercelSandboxCodeRunner';
 import { getCodeRunner, WandboxCodeRunner, LocalCodeRunner, IsolatedProductionRunner, type RunnerRequest } from '../server/codeRunner';
 import { evaluateSubmission } from '../server/evaluateSubmission';
-import { compilerVersion } from '../server/sandbox/compilerEnvironment';
+import { compilerVersion, snapshotExpirationMs } from '../server/sandbox/compilerEnvironment';
 
 const outcome = (stdout = 'Hello, modern C++!\n', overrides = {}) => ({ stdout, stderr: '', exitCode: 0, executionTimeMs: 2, timedOut: false, outputLimited: false, ...overrides });
 const request: RunnerRequest = { code: '#include <iostream>\nint main(){std::cout << "Hello, modern C++!";}', mode: 'assessment', wasAssisted: false,
@@ -185,10 +185,9 @@ describe('trusted compiler snapshot and batch execution', () => {
     expect(metrics[0].phases).not.toHaveProperty('aptProvisioning');
     expect(f.client.stop).toHaveBeenCalledOnce();
   });
-  it.each(['version', 'age'])('rebuilds an isolated environment when snapshot %s is stale', async reason => {
+  it('rebuilds an isolated environment when the compiler version changes', async () => {
     const f = fixture(); const metadata = snapshot();
-    if (reason === 'version') metadata.version = 'outdated';
-    else metadata.createdAt -= 8 * 24 * 60 * 60 * 1000;
+    metadata.version = 'outdated';
     const runner = new VercelSandboxCodeRunner(f.create as any, { snapshot: metadata, onTiming: () => {} });
     expect((await runner.evaluate(request)).passed).toBe(true);
     expect(f.create.mock.calls[0][0]).not.toHaveProperty('source');
@@ -196,6 +195,19 @@ describe('trusted compiler snapshot and batch execution', () => {
     const uploaded = f.client.writeFiles.mock.calls.flatMap(([files]: any) => files).map(file => file.content.toString()).join('');
     expect(uploaded).not.toContain(request.code);
     expect(uploaded).not.toContain('secret input');
+  });
+  it('restores a compatible non-expiring snapshot older than seven days', async () => {
+    expect(snapshotExpirationMs).toBe(0);
+    const f = fixture(); const metadata = snapshot();
+    metadata.createdAt -= 365 * 24 * 60 * 60 * 1000;
+    const metrics: any[] = [];
+    const runner = new VercelSandboxCodeRunner(f.create as any, { snapshot: metadata, onTiming: t => metrics.push(t) });
+    expect((await runner.evaluate(request)).passed).toBe(true);
+    expect(f.create).toHaveBeenCalledOnce();
+    expect(f.create.mock.calls[0][0]).toMatchObject({ source: { type: 'snapshot', snapshotId: metadata.snapshotId }, networkPolicy: 'deny-all', persistent: false });
+    expect(metrics[0].snapshotHit).toBe(true);
+    expect(metrics[0].phases).not.toHaveProperty('aptProvisioning');
+    expect(f.client.stop).toHaveBeenCalledOnce();
   });
   it('recovers a missing snapshot before uploading student data, using the same provider', async () => {
     const f = fixture(); f.create.mockRejectedValueOnce({ json: { error: { code: 'snapshot_not_found' } } });
