@@ -264,6 +264,7 @@ export interface UserProgress {
     timestamp?: number;
   }>;
   examAttempts: Record<string, ExamAttempt>;
+  examMasteryEvidence?: ExamMasteryEvidence;
   codingChallengeResults?: Record<string, {
     passed: boolean;
     score: number;
@@ -297,6 +298,7 @@ export type ExamPartType =
   | "explanation";    // Part E: 2 Conceptual Rubric questions
 
 export interface ExamQuestionDetail {
+  topicIds?: string[];
   id: string;
   part?: ExamPartType;
   type: "mcq" | "true-false" | "code-reading" | "debugging" | "coding-challenge" | "interview-explanation" | "why-this-code-works" | "code-analysis";
@@ -342,7 +344,22 @@ export interface Exam {
 
 export type ExamInstance = Exam;
 
+export interface ExamQuestionScore {
+  questionId: string;
+  earned: number;
+  possible: number;
+}
+export interface TopicExamObservation {
+  attemptId: string;
+  timestamp: number;
+  score: number;
+}
+export interface ExamMasteryEvidence {
+  version: 1;
+  questions: Record<string, TopicExamObservation[]>;
+}
 export interface ExamAttempt {
+  questionScores?: ExamQuestionScore[];
   integritySource?: 'server-v2';
   id?: string;
   examId: string;

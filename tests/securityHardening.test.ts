@@ -156,6 +156,7 @@ describe('Trusted progress and API security', () => {
     await withApp(store, async (base) => {
       expect((await post(base, '/progress/profile', { verifiedCodingPassed: ['cc-t39'], completedUnitIds: ['topic-39'], examAttempts: { 'exam-final': { score: 100, passed: true } } })).status).toBe(400);
       expect((await post(base, '/progress/quiz', { quizId: 'quiz-t1', answers: {}, score: 100, passed: true })).status).toBe(400);
+      expect((await post(base, '/progress/profile', { examMasteryEvidence: { version: 1, questions: {} } })).status).toBe(400);
       expect((await post(base, '/progress/complete', { unitId: 'topic-19' })).status).toBe(403);
       const result = await post(base, '/progress/quiz', { quizId: 'quiz-t1', answers: {} });
       expect((await result.json()).score).toBe(0);
@@ -201,6 +202,7 @@ describe('Trusted progress and API security', () => {
     await expect(service.getSession(other, sessionId)).rejects.toMatchObject({ status: 403 });
     await withApp(store, async base => {
       expect((await post(base, '/assessment/exam/submit', { sessionId, answers: {}, score: 100, generatedQuestions: [] })).status).toBe(400);
+      expect((await post(base, '/assessment/exam/submit', { sessionId, answers: {}, questionScores: [{ questionId: 'ef-mcq-1', earned: 10, possible: 10 }] })).status).toBe(400);
       expect(store.documents[`users/${user.uid}`].examAttempts).toEqual({});
     });
   });
@@ -225,9 +227,16 @@ describe('Trusted progress and API security', () => {
       expect(outcome.grading.score).toBe(50);
       expect(outcome.grading.passed).toBe(true);
       expect(outcome.progress.examAttempts['exam-foundations'].score).toBe(50);
+      expect(outcome.attempt.questionScores).toHaveLength(session.exam.questions.length);
+      expect(outcome.attempt.questionScores.reduce((sum: number, q: any) => sum + q.earned, 0)).toBe(50);
+      expect(Object.keys(outcome.progress.examMasteryEvidence.questions)).toHaveLength(session.exam.questions.length);
+      expect(outcome.progress.completedUnitIds).toEqual(ALL_UNITS.slice(0,18).map(unit => unit.id));
       const replay = await post(base, '/assessment/exam/submit', { sessionId: session.sessionId, answers: {} });
       expect(replay.status).toBe(200);
-      expect((await replay.json()).attempt.id).toBe(outcome.attempt.id);
+      const replayOutcome = await replay.json();
+      expect(replayOutcome.attempt.id).toBe(outcome.attempt.id);
+      expect(replayOutcome.progress.examMasteryEvidence).toEqual(outcome.progress.examMasteryEvidence);
+      expect(Object.values(replayOutcome.progress.examMasteryEvidence.questions).every((entries: any) => entries.length === 1)).toBe(true);
       expect(Object.keys(store.documents).filter(key => key.startsWith('users/learner-a/exams/'))).toHaveLength(1);
       expect(work).not.toHaveBeenCalled(); // Blank coding answers retain the existing zero-point policy.
     });

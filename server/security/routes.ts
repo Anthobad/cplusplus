@@ -85,7 +85,7 @@ export function createTrustedRoutes(options: {
     const outcome = await progress.finishExam(res.locals.principal, req.body.sessionId, {
       examId: session.exam.id, examTitle: session.exam.title, score: grading.score, passed: grading.passed,
       answers, generatedQuestions: session.exam.questions, codingResults: grading.codingResults,
-      explanationResults: grading.explanationResults,
+      explanationResults: grading.explanationResults, questionScores: grading.questionScores,
       tabSwitchWarnings: session.submission!.tabSwitchWarnings,
     }, grading);
     res.json(outcome);

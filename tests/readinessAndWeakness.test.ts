@@ -75,11 +75,11 @@ describe("Interview Readiness & Needs Review Analytics", () => {
 
     expect(readiness.hasEnoughData).toBe(true);
 
-    // Fundamentals dimension (quiz-t1: 90, quiz-t2: 85, quiz-t4: 95) -> avg 90 -> "Strong"
+    // Three assessed topics cannot imply mastery of all thirteen foundational topics.
     const fundDim = readiness.dimensions.find((d) => d.name === "C++ Fundamentals");
     expect(fundDim).toBeDefined();
-    expect(fundDim!.status).toBe("Strong");
-    expect(fundDim!.score).toBe(90);
+    expect(fundDim!.status).toBe("Needs Review");
+    expect(fundDim!.score).toBe(21);
 
     // Interview Performance dimension -> 78% -> "Developing"
     const intDim = readiness.dimensions.find((d) => d.name === "Technical Interview Performance");

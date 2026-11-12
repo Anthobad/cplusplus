@@ -4,6 +4,7 @@ import { canonicalExplanationId, EXPLANATION_CRITERIA, EXPLANATION_RUBRIC_VERSIO
   explanationPercentage, unansweredExplanation, type ExplanationAssessment } from './explanationRubric.js';
 
 export interface GradedExam {
+  questionScores: import('../types').ExamQuestionScore[];
   score: number;
   passed: boolean;
   codingResults: Record<string, CodeEvaluationResult>;
@@ -88,12 +89,14 @@ export async function gradeExam(exam: Exam, answers: Record<string, unknown>,
   evaluateCode: typeof evaluateExamCode = evaluateExamCode,
   evaluateExplanation: typeof evaluateExamExplanation = evaluateExamExplanation): Promise<GradedExam> {
   let earned = 0;
+  const questionScores: GradedExam["questionScores"] = [];
   const possible = exam.questions.reduce((sum, question) => sum + question.points, 0);
   const codingResults: GradedExam['codingResults'] = {};
   const codingPoints: GradedExam['codingPoints'] = {};
   const explanationResults: GradedExam['explanationResults'] = {};
   const explanationPoints: GradedExam['explanationPoints'] = {};
   for (const question of exam.questions) {
+    const before = earned;
     const answer = answers[question.id];
     if (question.type === 'coding-challenge') {
       const result = await evaluateCode(question, typeof answer === 'string' ? answer : '');
@@ -111,7 +114,8 @@ export async function gradeExam(exam: Exam, answers: Record<string, unknown>,
       explanationPoints[question.id] = points;
       earned += points;
     }
+    questionScores.push({ questionId: question.id, earned: earned - before, possible: question.points });
   }
   const score = Math.round(earned / (possible || 100) * 100);
-  return { score, passed: score >= (exam.passingScore || 50), codingResults, codingPoints, explanationResults, explanationPoints };
+  return { questionScores, score, passed: score >= (exam.passingScore || 50), codingResults, codingPoints, explanationResults, explanationPoints };
 }

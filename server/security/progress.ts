@@ -1,3 +1,4 @@
+import { addExamEvidence, examEvidenceForProgress } from '../../src/lib/examMastery.js';
 import { createHash, randomUUID } from 'node:crypto';
 import type { Exam, ExamAttempt, UserProgress, CodeEvaluationResult } from '../../src/types.js';
 import { ALL_UNITS, getUnitLockReason, migrateUserProgress, checkExamPrerequisites } from '../../src/data/curriculum.js';
@@ -172,7 +173,8 @@ export function createProgressService(store: TrustedStore, now = Date.now) {
       const current = docs[root];
       if (!checkExamPrerequisites(session.exam, current).isUnlocked) throw new HttpError(403, 'Exam prerequisites are not met.');
       const stored = { ...attempt, id: sessionId, timestamp: now(), completedAt: new Date(now()).toISOString(), integritySource: "server-v2" };
-      const progress = { ...current, examAttempts: { ...current.examAttempts, [stored.examId]: stored }, lastActiveTimestamp: now() };
+      const progress = { ...current, examAttempts: { ...current.examAttempts, [stored.examId]: stored },
+        examMasteryEvidence: addExamEvidence(examEvidenceForProgress(current), stored as ExamAttempt), lastActiveTimestamp: now() };
       const outcome = { grading, attempt: stored, progress };
       return { value: outcome, writes: { [root]: progress, [history]: stored, [sessionPath]: { ...session, outcome } } };
     });

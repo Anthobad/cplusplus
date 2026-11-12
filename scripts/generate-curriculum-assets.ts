@@ -1,3 +1,5 @@
+import { EXAM_QUESTION_POOLS } from '../src/data/examQuestionPools';
+import { validateQuestionTopics } from '../src/data/examTopics';
 /** Build browser assets from the authoritative composed curriculum; never learner state. */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -5,6 +7,9 @@ import { ALL_PHASES } from '../src/data/curriculum';
 import { CURRICULUM_EXAMS } from '../src/data/exams';
 import type { Unit } from '../src/types';
 import type { UnitSummary } from '../src/data/curriculumTypes';
+
+validateQuestionTopics([...Object.values(EXAM_QUESTION_POOLS).flat(), ...CURRICULUM_EXAMS.flatMap(exam => exam.questions)],
+  new Set(ALL_PHASES.flatMap(phase => phase.weeks.map(unit => unit.id))));
 
 const directory = fileURLToPath(new URL('../src/generated/curriculum/', import.meta.url));
 mkdirSync(directory, { recursive: true });

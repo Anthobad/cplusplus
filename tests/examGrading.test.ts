@@ -42,9 +42,20 @@ describe('Exam coding grading and failure handling', () => {
     const evaluate = vi.fn().mockResolvedValue(result({ passed: false, verified: false, testsPassed: 2, score: 50 }));
     const assess = vi.fn(async q => ({ ...unansweredExplanation(q.id), score: 100 }));
     const graded = await gradeExam(exam, { ...nonCoding, [coding.id]: 'submitted implementation' }, evaluate, assess);
+    expect(graded.questionScores.find(q => q.questionId === coding.id)).toEqual({ questionId: coding.id, earned: 10, possible: 20 });
     expect(graded.codingPoints[coding.id]).toBe(10); expect(graded.score).toBe(90); expect(graded.passed).toBe(true);
     expect(graded.codingResults[coding.id].testsPassed).toBe(2);
     expect(assess).toHaveBeenCalledTimes(2);
+  });
+
+  it('persists exact partial coding, explanation and code-analysis points for analytics', async () => {
+    const graded = await gradeExam(exam, { ...nonCoding, [coding.id]: 'implementation' },
+      async () => result({ passed: false, verified: false, testsPassed: 2, score: 50 }),
+      async q => ({ ...unansweredExplanation(q.id), score: 60 }));
+    expect(graded.questionScores.find(q => q.questionId === coding.id)).toEqual({ questionId: coding.id, earned: 10, possible: 20 });
+    expect(graded.questionScores.find(q => q.questionId === 'why')).toEqual({ questionId: 'why', earned: 9, possible: 15 });
+    expect(graded.questionScores.find(q => q.questionId === 'analysis')).toEqual({ questionId: 'analysis', earned: 9, possible: 15 });
+    expect(graded.score).toBe(78);
   });
 
   it('gives full coding points to an implementation passing all tests without matching keywords', async () => {

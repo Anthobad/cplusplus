@@ -1,3 +1,4 @@
+import { withQuestionTopics } from './examTopics.js';
 import type { Exam, ExamQuestionDetail } from '../types';
 import { EXAM_CODING } from './examCoding.js';
 
@@ -115,7 +116,7 @@ function corrected(question: ExamQuestionDetail): ExamQuestionDetail {
 
 export function withAssessmentPools(pools: Record<string, ExamQuestionDetail[]>): Record<string, ExamQuestionDetail[]> {
   return Object.fromEntries(Object.entries(pools).map(([id, questions]) =>
-    [id, [...questions.map(corrected), ...additions(id)]]));
+    [id, [...questions.map(corrected), ...additions(id)].map(withQuestionTopics)]));
 }
 
 // The fallback exam data remains structurally identical, with selected wording corrected.
@@ -130,6 +131,6 @@ export function withAssessmentCorrections(exams: Exam[]): Exam[] {
       'ex4-q4': 'efin-ca-1', 'ex4-q5': 'efin-mcq-2',
     };
     const correction = corrections[aliases[question.id] || question.id];
-    return corrected(correction ? { ...question, ...correction } : question);
+    return withQuestionTopics(corrected(correction ? { ...question, ...correction } : question));
   }) }));
 }
