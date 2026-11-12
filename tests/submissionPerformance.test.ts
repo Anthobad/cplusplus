@@ -30,7 +30,6 @@ async function fixture(run: (base: string, logs: ReturnType<typeof vi.spyOn>, wo
       recordRunnerTiming({ snapshotHit: true, compilationMs: req.body.sample, executionMs: 1, phases: { cleanup: 2 } });
     });
     await measureSubmissionPhase('progressPersistence', async () => {});
-    await measureSubmissionPhase('aiFeedback', async () => {});
     submissionTimingHeaders(res); res.json({ passed: true });
   }));
   const server = app.listen(0, '127.0.0.1');
@@ -53,7 +52,7 @@ describe('Submission performance instrumentation', () => {
       expect(event.requestId).toBe(response.headers.get('x-submission-id'));
       expect(event.status).toBe(200);
       expect(event.finalizedMs).toBeGreaterThanOrEqual(event.responseMs);
-      for (const phase of ['authentication', 'quotaReservation', 'evaluation', 'progressPersistence', 'aiFeedback', 'quotaRelease']) {
+      for (const phase of ['authentication', 'quotaReservation', 'evaluation', 'progressPersistence', 'quotaRelease']) {
         expect(event.phases[phase]).toBeGreaterThanOrEqual(0);
       }
       expect(response.headers.get('server-timing')).toContain('authentication;dur=');

@@ -3,8 +3,8 @@ import { evaluateSubmission } from '../server/evaluateSubmission';
 import { LocalCodeRunner, type CodeRunner } from '../server/codeRunner';
 import { EXAM_SERVER_CHALLENGES } from '../server/examChallengeRegistry';
 import { EXAM_SOLUTIONS } from './fixtures/examSolutions';
-import { EXAM_QUESTION_POOLS, generateRandomizedExam } from '../src/data/examQuestionPools';
-import { CURRICULUM_EXAMS } from '../src/data/exams';
+import { EXAM_QUESTION_POOLS, generateRandomizedExam } from '../server/data/legacyQuestionPools';
+import { CURRICULUM_EXAMS } from '../server/data/legacyExams';
 
 const runner = new LocalCodeRunner();
 const shortRunner: CodeRunner = { evaluate: request => runner.evaluate({ ...request, timeoutMs: 100 }) };

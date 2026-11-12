@@ -1,5 +1,8 @@
 # Curriculum teaching review
 
+> Historical implementation report. AI-dependent behavior described below was retired by the [deterministic assessment migration](deterministic-assessment-migration.md); historical results remain preserved.
+
+
 Subsequent updates: [compiler-backed exam coding](compiler-backed-exam-grading.md) and [rubric-based explanation grading](rubric-based-explanation-grading.md). The preserved-behavior and verification notes below describe the earlier content-only revision; the later grading changes are documented separately.
 
 Priority 3 follow-up: the learner reported insufficient explanation after trying the material. [The first three lessons now have expanded explanations, worked examples and a follow-up feedback procedure](beginner-learning-feedback.md). This revision has not yet been validated by follow-up learner results.

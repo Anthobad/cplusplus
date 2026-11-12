@@ -1,766 +1,128 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  Shield,
-  Clock,
-  AlertTriangle,
-  BookOpen,
-  Award,
-  CheckCircle2,
-  XCircle,
-  Maximize2,
-  Minimize2,
-  RotateCcw,
-  Sparkles,
-  ArrowRight,
-  Lock,
-  Shuffle,
-  Layers,
-  HelpCircle
-} from "lucide-react";
-import confetti from "canvas-confetti";
-import { Exam, ExamAttempt, UserProgress, CodeEvaluationResult } from "../types";
-import { gradeExam } from '../lib/examGrading';
-import { EXPLANATION_CRITERIA, type ExplanationAssessment } from '../lib/explanationRubric';
-import { cacheTrustedExam } from "../lib/firebase";
-import { trustedRequest } from "../lib/authenticatedFetch";
-import { checkExamPrerequisites, getFirstUnitAfterExam } from "../data/curriculumSummary";
-import { getExamPoolStatistics } from "../data/examQuestionPools";
-import { useAssessment } from "../lib/AssessmentContext";
+import { calculateReadiness } from '../lib/readinessAnalytics';
+import React, { useEffect, useRef, useState } from 'react';
+import type { Exam, ExamAttempt, ExamQuestionDetail, UserProgress } from '../types';
+import { trustedRequest } from '../lib/authenticatedFetch';
+import { cacheTrustedExam } from '../lib/firebase';
+import { useAssessment } from '../lib/AssessmentContext';
+import { checkExamPrerequisites, getFirstUnitAfterExam } from '../data/curriculumSummary';
 
-interface ExamViewProps {
-  exam: Exam;
-  userId: string;
-  onExitExam: () => void;
-  onOpenDocs: () => void;
-  progress?: UserProgress;
-  onSelectUnit?: (unitId: string) => void;
-  onExamAttemptSaved?: (updatedProgress: UserProgress) => void;
+type Props={exam:Exam;userId:string;onExitExam:()=>void;onOpenDocs:()=>void;progress?:UserProgress;
+  onSelectUnit?:(id:string)=>void;onExamAttemptSaved?:(progress:UserProgress)=>void};
+/** Read-only highlighting: React escapes all source; no HTML interpretation. */
+export function ExamCode({code}:{code:string}){
+ const tokens=code.split(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/[^\n]*|\b(?:int|auto|const|void|struct|class|return|if|else|for|while|virtual|override|noexcept|public|private|template|typename|delete|new|bool)\b)/g);
+ return <pre className="p-4 overflow-x-auto bg-slate-950 rounded-lg text-xs font-mono whitespace-pre"><code>{tokens.map((token,i)=><span key={i} className={/^['"]/.test(token)?'text-emerald-300':token.startsWith('//')?'text-slate-500':/^[a-z]+$/.test(token)?'text-purple-300':'text-slate-200'}>{token}</span>)}</code></pre>;
 }
-
-export const ExamView: React.FC<ExamViewProps> = ({
-  exam,
-  userId,
-  onExitExam,
-  onOpenDocs,
-  progress,
-  onSelectUnit,
-  onExamAttemptSaved
-}) => {
-  // Prerequisite check
-  const prereqStatus = progress ? checkExamPrerequisites(exam, progress) : { isUnlocked: true, totalRequired: 0, completedCount: 0, missingUnits: [], firstMissingUnit: undefined };
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
-  const isPrereqLocked = !prereqStatus.isUnlocked || !sessionId;
-
-  // Active randomized exam state
-  const [activeExam, setActiveExam] = useState<Exam>(exam);
-  const submissionVersion = useRef(0);
-  const poolStats = getExamPoolStatistics(exam.id);
-  const { setAssessmentMode, setAssessmentTitle } = useAssessment();
-
-  // Sync if parent exam changes
-  useEffect(() => {
-    submissionVersion.current++;
-    void startServerExam(true);
-    setAnswers({});
-    setCodingResults({});
-    setCodingPoints({});
-    setExplanationResults({});
-    setExplanationPoints({});
-    setSubmissionError(null);
-    setExamSubmitted(false);
-    setIsPassed(false);
-    setExamScore(0);
-    setSecondsRemaining(exam.durationMinutes * 60);
-    submittingRef.current = false;
-    setIsSubmitting(false);
-    return () => { submissionVersion.current++; };
-  }, [exam.id]);
-
-  // Timer state
-  const [secondsRemaining, setSecondsRemaining] = useState(exam.durationMinutes * 60);
-  const clockEnd = useRef<number | null>(null);
-  const [answersLocked, setAnswersLocked] = useState(false);
-  const timeExpired = secondsRemaining === 0;
-  const [examSubmitted, setExamSubmitted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    if (!isPrereqLocked && !examSubmitted) {
-      setAssessmentMode("exam");
-      setAssessmentTitle(exam.title);
-    } else {
-      setAssessmentMode("none");
-      setAssessmentTitle(undefined);
-    }
-
-    return () => {
-      setAssessmentMode("none");
-      setAssessmentTitle(undefined);
-    };
-  }, [isPrereqLocked, examSubmitted, exam.title, setAssessmentMode, setAssessmentTitle]);
-
-  // Tab switch / blur detection ("browser lock")
-  const [tabSwitches, setTabSwitches] = useState(0);
-  const [showBlurWarning, setShowBlurWarning] = useState(false);
-
-  // Answers state
-  const [answers, setAnswers] = useState<{ [qId: string]: any }>({});
-  const [examScore, setExamScore] = useState(0);
-  const [isPassed, setIsPassed] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const submittingRef = useRef(false);
-  const submitLatest = useRef<() => Promise<void>>(async () => {});
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [codingResults, setCodingResults] = useState<Record<string, CodeEvaluationResult>>({});
-  const [codingPoints, setCodingPoints] = useState<Record<string, number>>({});
-  const [explanationResults, setExplanationResults] = useState<Record<string, ExplanationAssessment>>({});
-  const [explanationPoints, setExplanationPoints] = useState<Record<string, number>>({});
-  const [poolShuffledNotice, setPoolShuffledNotice] = useState(false);
-
-  // Countdown timer effect
-  useEffect(() => {
-    if (examSubmitted || isPrereqLocked || timeExpired) return;
-
-    const timer = setInterval(() => {
-      if (clockEnd.current !== null) setSecondsRemaining(Math.max(0, Math.ceil((clockEnd.current - performance.now()) / 1000)));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [examSubmitted, isPrereqLocked, exam.id, timeExpired]);
-
-  useEffect(() => {
-    if (secondsRemaining === 0 && !examSubmitted && !isPrereqLocked) void submitLatest.current();
-  }, [secondsRemaining, examSubmitted, isPrereqLocked]);
-
-  // Tab switch and blur monitoring ("Browser Lock")
-  useEffect(() => {
-    if (examSubmitted || isPrereqLocked) return;
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setTabSwitches(prev => prev + 1);
-        setShowBlurWarning(true);
-      }
-    };
-
-    const handleWindowBlur = () => {
-      setTabSwitches(prev => prev + 1);
-      setShowBlurWarning(true);
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("blur", handleWindowBlur);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("blur", handleWindowBlur);
-    };
-  }, [examSubmitted, isPrereqLocked]);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
-    } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
-    }
-  };
-
-  async function startServerExam(resetClock: boolean) {
-    const version = ++submissionVersion.current;
-    setSessionId(null); setSessionLoading(true); setSubmissionError(null);
-    try {
-      const requestStarted = performance.now();
-      const session = await trustedRequest<{ sessionId: string; exam: Exam; deadlineAt: number; serverNow: number }>("/api/assessment/exam/start",
-        { examId: exam.id, ...(!resetClock && sessionId ? { sessionId } : {}) });
-      if (version !== submissionVersion.current) return;
-      setActiveExam(session.exam); setSessionId(session.sessionId);
-      setAnswers({}); setAnswersLocked(false);
-      // Use server time and a monotonic browser clock; background timer throttling cannot add time.
-      const remainingMs = Math.max(0, session.deadlineAt - session.serverNow - (performance.now() - requestStarted));
-      clockEnd.current = performance.now() + remainingMs;
-      setSecondsRemaining(Math.ceil(remainingMs / 1000));
-    } catch (error) {
-      if (version === submissionVersion.current) setSubmissionError(error instanceof Error ? error.message : "Exam session unavailable.");
-    } finally { if (version === submissionVersion.current) setSessionLoading(false); }
-  }
-  const handleShufflePool = () => {
-    if (examSubmitted || submittingRef.current || answersLocked || timeExpired || sessionLoading) return;
-    void startServerExam(false);
-    setPoolShuffledNotice(true);
-    setTimeout(() => setPoolShuffledNotice(false), 3000);
-  };
-
-  const handleAnswerChange = (questionId: string, val: any) => {
-    if (examSubmitted || submittingRef.current || answersLocked || timeExpired) return;
-    setAnswers(prev => ({ ...prev, [questionId]: val }));
-  };
-
-  const handleSubmitExam = async () => {
-    if (examSubmitted || isPrereqLocked || submittingRef.current) return;
-    submittingRef.current = true;
-    setIsSubmitting(true);
-    setAnswersLocked(true);
-    setSubmissionError(null);
-    const submittedAnswers = { ...answers };
-    const version = submissionVersion.current;
-    let graded: Awaited<ReturnType<typeof gradeExam>>;
-    let outcome: { grading: typeof graded; progress: UserProgress; attempt: ExamAttempt };
-    try {
-      outcome = await trustedRequest("/api/assessment/exam/submit", { sessionId, answers: submittedAnswers, tabSwitchWarnings: tabSwitches });
-      graded = outcome.grading;
-    } catch (error) {
-      if (version !== submissionVersion.current) return;
-      setSubmissionError(error instanceof Error ? error.message : 'Evaluation failed. Your answers have been retained; retry submission.');
-      submittingRef.current = false;
-      setIsSubmitting(false);
-      return;
-    }
-    if (version !== submissionVersion.current) return;
-    const { score: scaledScore, passed } = graded;
-    setCodingResults(graded.codingResults);
-    setCodingPoints(graded.codingPoints);
-    setExplanationResults(graded.explanationResults);
-    setExplanationPoints(graded.explanationPoints);
-
-    setExamScore(scaledScore);
-    setIsPassed(passed);
-    setExamSubmitted(true);
-
-    if (passed) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }
-
-    const updated = cacheTrustedExam(outcome.attempt, outcome.progress, userId);
-    onExamAttemptSaved?.(updated);
-    submittingRef.current = false;
-    setIsSubmitting(false);
-  };
-  submitLatest.current = handleSubmitExam;
-
-  const handleRetakeExam = () => {
-    if (submittingRef.current) return;
-    // Generate fresh randomized questions from pool for retake!
-    void startServerExam(true);
-    setExamSubmitted(false);
-    setIsPassed(false);
-    setExamScore(0);
-    setAnswers({});
-    setCodingResults({});
-    setCodingPoints({});
-    setExplanationResults({});
-    setExplanationPoints({});
-    setSubmissionError(null);
-    setSecondsRemaining(activeExam.durationMinutes * 60);
-    setTabSwitches(0);
-    setShowBlurWarning(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  if (sessionLoading || !sessionId) return <div className="p-8 text-slate-200 space-y-4">
-    <p role={sessionLoading ? "status" : "alert"}>{sessionLoading ? "Starting secure exam session…" : submissionError || "Exam session unavailable."}</p>
-    {!sessionLoading && <button type="button" className="text-blue-300 underline mr-4" onClick={() => void startServerExam(true)}>Retry exam session</button>}
-    <button type="button" className="text-blue-300 underline" onClick={onExitExam}>Curriculum Roadmap</button>
-  </div>;
-
-  if (isPrereqLocked) {
-  return (
-      <div 
-        id="locked-exam-gate-screen"
-        className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6"
-      >
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center shadow-2xl space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
-            <Lock className="h-8 w-8" />
-          </div>
-
-          <div>
-            <span className="text-[11px] uppercase tracking-wider font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
-              Prerequisites Incomplete
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white mt-3">
-              Examination Locked
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
-              To preserve academic rigor, this proctored milestone exam requires completing all {prereqStatus.totalRequired} prerequisite units across {exam.coversPhases.length === 1 ? `Phase ${exam.coversPhases[0]}` : `Phases ${exam.coversPhases.join(", ")}`}.
-            </p>
-          </div>
-
-          {/* Progress Indicator */}
-          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-left space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-300">Prerequisite Progress:</span>
-              <span className="font-mono text-amber-400 font-bold">
-                {prereqStatus.completedCount} / {prereqStatus.totalRequired} Units ({Math.round((prereqStatus.completedCount / prereqStatus.totalRequired) * 100)}%)
-              </span>
-            </div>
-            <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-              <div
-                className="bg-amber-400 h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.round((prereqStatus.completedCount / prereqStatus.totalRequired) * 100)}%` }}
-              />
-            </div>
-
-            {prereqStatus.firstMissingUnit && (
-              <div className="pt-2 border-t border-slate-900 text-xs">
-                <div className="text-slate-500">Next incomplete curriculum unit:</div>
-                <div className="text-white font-medium mt-0.5">
-                  Topic {prereqStatus.firstMissingUnit.weekNumber}: {prereqStatus.firstMissingUnit.title}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <button
-              id="exit-locked-exam-btn"
-              type="button"
-              onClick={onExitExam}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-colors border border-slate-700"
-            >
-              Return to Roadmap
-            </button>
-            {prereqStatus.firstMissingUnit && onSelectUnit && (
-              <button
-                id="resume-from-locked-exam-btn"
-                type="button"
-                onClick={() => onSelectUnit(prereqStatus.firstMissingUnit!.id)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center space-x-1.5"
-              >
-                <span>Continue to Topic {prereqStatus.firstMissingUnit.weekNumber}</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Locked Exam Top Header */}
-      <div className="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/95 backdrop-blur px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-xl">
-        <div className="flex items-center space-x-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/20 text-red-400 border border-red-500/30">
-            <Shield className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-              {exam.title}
-              <span className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded uppercase font-semibold tracking-wider">
-                Exam Mode Active
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              Browser Lock & Timed Proctoring Active • Passing: 50 / 100
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          {/* Shuffle Pool Button (before submit) */}
-          {!examSubmitted && (
-            <button
-              onClick={handleShufflePool}
-              disabled={isSubmitting || answersLocked || timeExpired}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition-colors"
-              title="Sample a different randomized set of questions from the pool"
-            >
-              <Shuffle className="h-3.5 w-3.5 text-indigo-400" />
-              <span className="hidden md:inline">Shuffle Pool</span>
-            </button>
-          )}
-
-          {/* Countdown Clock */}
-          <div className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl border font-mono text-sm font-bold ${
-            secondsRemaining < 300
-              ? "bg-red-950/60 border-red-500 text-red-400 animate-pulse"
-              : "bg-slate-950 border-slate-800 text-amber-400"
-          }`}>
-            <Clock className="h-4 w-4" />
-            <span>{formatTimer(secondsRemaining)}</span>
-          </div>
-
-          {/* C++ Library Access if allowed */}
-          {activeExam.allowCppReference && (
-            <button
-              onClick={onOpenDocs}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-colors"
-              title="Reference C++ Standard Library functions allowed for this exam"
-            >
-              <BookOpen className="h-4 w-4 text-blue-400" />
-              <span className="hidden sm:inline">C++ Library</span>
-            </button>
-          )}
-
-          {/* Fullscreen toggle */}
-          <button
-            onClick={toggleFullscreen}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-            title="Toggle Fullscreen"
-          >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Pool Shuffled Notification Toast */}
-      {poolShuffledNotice && (
-        <div className="bg-indigo-950/90 border-b border-indigo-500 text-indigo-200 px-6 py-2 flex items-center justify-between text-xs animate-in slide-in-from-top">
-          <div className="flex items-center space-x-2">
-            <Shuffle className="h-4 w-4 text-indigo-400 shrink-0 animate-spin" />
-            <span>
-              <strong>Question Pool Randomized:</strong> Drew a fresh stratified sample of 7 questions from the pool of {poolStats.total} questions.
-            </span>
-          </div>
-          <button
-            onClick={() => setPoolShuffledNotice(false)}
-            className="text-xs bg-indigo-500/20 hover:bg-indigo-500/30 px-2 py-0.5 rounded font-semibold transition-colors"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* Tab Switch Warning Overlay */}
-      {showBlurWarning && !examSubmitted && (
-        <div className="bg-amber-950/90 border-b border-amber-500 text-amber-200 px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top">
-          <div className="flex items-center space-x-2">
-            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
-            <span>
-              <strong>Warning ({tabSwitches} logged):</strong> Focus loss or tab switch detected. The examination environment monitors active window state.
-            </span>
-          </div>
-          <button
-            onClick={() => setShowBlurWarning(false)}
-            className="text-xs bg-amber-500/20 hover:bg-amber-500/30 px-2 py-0.5 rounded font-semibold transition-colors"
-          >
-            Acknowledge
-          </button>
-        </div>
-      )}
-
-      {/* Exam Body Container */}
-      <div className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 space-y-8">
-        {/* Pool Metadata & Rigor Banner */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center space-x-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-              <Layers className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="font-semibold text-slate-200 flex items-center gap-2">
-                <span>Randomized Question Pool System</span>
-                <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.2 rounded-full border border-indigo-500/30 font-mono">
-                  {poolStats.total} Questions in Pool
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Every exam attempt draws a unique, balanced 100-point subset ({poolStats.mcqs} MCQs, {poolStats.trueFalse} True/False, {poolStats.whyWorks} Deep Concepts, {poolStats.codeAnalysis} Bug Analysis, {poolStats.challenges} Code Challenges).
-              </p>
-            </div>
-          </div>
-          {!examSubmitted && (
-            <button
-              onClick={handleShufflePool}
-              disabled={isSubmitting || answersLocked || timeExpired}
-              className="shrink-0 self-start sm:self-center px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-colors border border-slate-700 flex items-center space-x-1.5 text-xs"
-            >
-              <Shuffle className="h-3 w-3 text-indigo-400" />
-              <span>Resample Pool</span>
-            </button>
-          )}
-        </div>
-
-        {/* Results Banner when Submitted */}
-        {examSubmitted && (
-          <div className={`p-6 rounded-2xl border shadow-2xl ${
-            isPassed
-              ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-100"
-              : "bg-red-950/40 border-red-500/50 text-red-100"
-          }`}>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center space-x-4">
-                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl shrink-0 ${
-                  isPassed ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
-                }`}>
-                  {isPassed ? <Award className="h-8 w-8" /> : <XCircle className="h-8 w-8" />}
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">
-                    {isPassed ? "Milestone Exam Passed!" : "Milestone Exam Failed (Passing Threshold Not Met)"}
-                  </h3>
-                  <p className="text-sm opacity-90 mt-0.5">
-                    Score: <span className="font-bold font-mono text-base">{examScore} / 100</span> (Passing threshold: <span className="font-bold">{activeExam.passingScore || 50} / 100</span>)
-                  </p>
-                  <p className="text-xs opacity-80 mt-1">
-                    {isPassed
-                      ? "Congratulations! Subsequent curriculum phases have been unlocked."
-                      : "You scored below the 50/100 passing threshold. Retaking will pull a fresh randomized question set from the pool."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3 shrink-0 flex-wrap gap-2">
-                {!isPassed && (
-                  <button
-                    id="exam-retake-btn"
-                    onClick={handleRetakeExam}
-                    className="flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-red-600 hover:bg-red-500 text-white transition-colors shadow-lg shadow-red-600/20"
-                    title="Generate a new randomized question set and retake the exam"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    <span>Retake (Fresh Pool Draw)</span>
-                  </button>
-                )}
-                {isPassed && onSelectUnit && (() => {
-                  const nextUnit = getFirstUnitAfterExam(activeExam.id);
-                  if (!nextUnit) return null;
-                  return (
-                    <button
-                      id="exam-proceed-next-phase-btn"
-                      onClick={() => onSelectUnit(nextUnit.id)}
-                      className="flex items-center space-x-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-colors shadow-lg shadow-emerald-500/25"
-                    >
-                      <span>Proceed to Topic {nextUnit.weekNumber}</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  );
-                })()}
-                <button
-                  id="exam-return-roadmap-btn"
-                  onClick={onExitExam}
-                  className="flex items-center space-x-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-white text-slate-950 hover:bg-slate-200 transition-colors shadow-lg"
-                >
-                  <span>Return to Roadmap</span>
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Exam Questions Form */}
-        <div className="space-y-6">
-          {activeExam.questions.map((q, idx) => {
-            const studentAns = answers[q.id];
-
-            return (
-              <div
-                key={q.id}
-                className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-md space-y-4"
-              >
-                {/* Question title & points */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start space-x-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xs font-bold text-slate-300">
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <h4 className="text-sm sm:text-base font-semibold text-slate-100 leading-snug">
-                        {q.question}
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        {q.category && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-medium">
-                            {q.category}
-                          </span>
-                        )}
-                        {q.difficulty && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
-                            q.difficulty === "Easy"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                              : q.difficulty === "Medium"
-                              ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                              : q.difficulty === "Hard"
-                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                              : "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                          }`}>
-                            {q.difficulty}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
-                          Type: {q.type.replace(/-/g, " ")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <span className="shrink-0 px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    {q.points} Pts
-                  </span>
-                </div>
-
-                {/* Optional code snippet in question */}
-                {q.codeSnippet && (
-                  <pre className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-blue-300 overflow-x-auto leading-relaxed">
-                    {q.codeSnippet}
-                  </pre>
-                )}
-
-                {/* Input Controls according to type */}
-                {q.type === "mcq" && q.options && (
-                  <div className="space-y-2 pt-1">
-                    {q.options.map((opt, optIdx) => {
-                      const isSelected = studentAns === optIdx;
-                      let style = "bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700";
-
-                      if (examSubmitted) {
-                        if (optIdx === q.correctAnswer) {
-                          style = "bg-emerald-950/40 border-emerald-500 text-emerald-200 font-semibold";
-                        } else if (isSelected && optIdx !== q.correctAnswer) {
-                          style = "bg-red-950/40 border-red-500 text-red-200 line-through";
-                        } else {
-                          style = "bg-slate-950/50 border-slate-850 text-slate-600";
-                        }
-                      } else if (isSelected) {
-                        style = "bg-blue-600/20 border-blue-500 text-blue-200 font-semibold";
-                      }
-
-                      return (
-                        <button
-                          key={optIdx}
-                          onClick={() => handleAnswerChange(q.id, optIdx)}
-                          disabled={examSubmitted || isSubmitting || answersLocked || timeExpired}
-                          className={`w-full text-left p-3 rounded-xl border text-xs transition-all flex items-center justify-between ${style}`}
-                        >
-                          <span>{opt}</span>
-                          {examSubmitted && optIdx === q.correctAnswer && (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {q.type === "true-false" && (
-                  <div className="flex space-x-3 pt-1">
-                    {[true, false].map(val => {
-                      const isSelected = studentAns === val;
-                      let style = "bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700";
-
-                      if (examSubmitted) {
-                        if (val === q.correctAnswer) {
-                          style = "bg-emerald-950/40 border-emerald-500 text-emerald-200 font-semibold";
-                        } else if (isSelected && val !== q.correctAnswer) {
-                          style = "bg-red-950/40 border-red-500 text-red-200";
-                        }
-                      } else if (isSelected) {
-                        style = "bg-blue-600/20 border-blue-500 text-blue-200 font-semibold";
-                      }
-
-                      return (
-                        <button
-                          key={val.toString()}
-                          onClick={() => handleAnswerChange(q.id, val)}
-                          disabled={examSubmitted || isSubmitting || answersLocked || timeExpired}
-                          className={`flex-1 p-3 rounded-xl border text-xs font-semibold text-center transition-all ${style}`}
-                        >
-                          {val ? "True" : "False"}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {(q.type === "why-this-code-works" ||
-                  q.type === "code-analysis" ||
-                  q.type === "coding-challenge") && (
-                  <div className="pt-1">
-                    {q.type === 'coding-challenge' && (
-                      <p className="text-xs text-blue-300 mb-3">{q.codingInstructions} Standard C++ headers are supplied by the evaluator. Coding points are based on public and hidden tests.</p>
-                    )}
-                    {q.type !== 'coding-challenge' && (
-                      <div className="text-xs text-slate-300 mb-3 space-y-1">
-                        <p>Explanations are assessed by an AI-assisted rubric, not keyword matching. Concise, correct paraphrases are welcome.</p>
-                        {EXPLANATION_CRITERIA.map(criterion => <p key={criterion.id}>{criterion.label} ({criterion.weight}%): {criterion.description}</p>)}
-                        <p>Each criterion earns 0 (missing/incorrect), 1 (partial), or 2 (sufficient). An incorrect or missing central rule, or an explicit major contradiction, caps the explanation at 25%; partial central correctness caps it at 75%.</p>
-                      </div>
-                    )}
-                    <textarea
-                      rows={6}
-                      aria-label={q.type === 'coding-challenge' ? `C++ answer ${idx + 1}` : `Explanation answer ${idx + 1}`}
-                      value={studentAns ?? (q.type === 'coding-challenge' ? q.initialCode || '' : '')}
-                      onChange={e => handleAnswerChange(q.id, e.target.value)}
-                      disabled={examSubmitted || isSubmitting || answersLocked || timeExpired}
-                      placeholder="Write your explanation or C++ implementation here..."
-                      className="w-full p-4 font-mono text-xs bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 disabled:opacity-80"
-                    />
-                  </div>
-                )}
-
-                {examSubmitted && q.type === 'coding-challenge' && codingResults[q.id] && (
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
-                    <p>{codingPoints[q.id]} / {q.points} coding points — {codingResults[q.id].testsPassed} / {codingResults[q.id].totalTests} tests passed.</p>
-                    {codingResults[q.id].compileError && <pre className="whitespace-pre-wrap text-red-300">{codingResults[q.id].compileError}</pre>}
-                    {codingResults[q.id].runtimeError && <p className="text-red-300">{codingResults[q.id].runtimeError}</p>}
-                    {codingResults[q.id].testResults.filter(test => !test.isHidden && !test.passed && test.error).map((test, index) => (
-                      <p key={index} className="text-red-300">{test.testId || `Public test ${index + 1}`}: {test.error}</p>
-                    ))}
-                  </div>
-                )}
-
-                {examSubmitted && explanationResults[q.id] && (
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-3">
-                    <p>{explanationPoints[q.id]} / {q.points} explanation points — {explanationResults[q.id].evaluatedBy === 'unanswered' ? 'Unanswered' : 'AI-assisted rubric assessment'}</p>
-                    <p>{explanationResults[q.id].feedback}</p>
-                    {explanationResults[q.id].criteria.map(criterion => (
-                      <div key={criterion.id} className="space-y-1">
-                        <p className="font-semibold">{EXPLANATION_CRITERIA.find(c => c.id === criterion.id)?.label}: {criterion.level} / 2</p>
-                        {criterion.evidence && <blockquote className="border-l-2 border-slate-600 pl-2 whitespace-pre-wrap">{criterion.evidence}</blockquote>}
-                        <p>{criterion.feedback}</p>
-                      </div>
-                    ))}
-                    {explanationResults[q.id].fundamentalError.present && <div className="text-red-300 space-y-1">
-                      <p>Major misconception: {explanationResults[q.id].fundamentalError.feedback}</p>
-                      <blockquote className="border-l-2 border-red-600 pl-2">{explanationResults[q.id].fundamentalError.evidence}</blockquote>
-                    </div>}
-                  </div>
-                )}
-
-                {/* Post-submit official explanation */}
-                {examSubmitted && (
-                  <div className="p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 text-xs text-slate-300">
-                    <span className="font-bold text-amber-400 block mb-1">Official Solution & Rubric:</span>
-                    {q.explanation}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Submit Action Area */}
-        {answersLocked && !examSubmitted && <p className="text-sm text-slate-300">Your submitted answers are locked. If grading fails, retry to grade these same answers.</p>}
-        {submissionError && <p role="alert" className="p-4 rounded-xl bg-red-950/40 border border-red-500/40 text-red-200 text-sm">{submissionError}</p>}
-        {!examSubmitted && (
-          <div className="pt-4 pb-12 flex items-center justify-between border-t border-slate-800">
-            <p className="text-xs text-slate-400">
-              {Object.keys(answers).length} of {activeExam.questions.length} questions answered
-            </p>
-            <button
-              onClick={handleSubmitExam}
-              disabled={isSubmitting}
-              className="px-6 py-3 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/30 transition-all flex items-center space-x-2"
-            >
-              {isSubmitting ? <Sparkles className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-              <span>{isSubmitting ? 'Evaluating code and explanations…' : 'Submit Examination & Finalize Score'}</span>
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+export function ExamQuestionInput({question,answer,onChange,disabled}:{question:ExamQuestionDetail;answer:string;onChange:(value:string)=>void;disabled:boolean}){
+ return <fieldset disabled={disabled} className="space-y-3 min-w-0">
+   <legend className="font-semibold text-white mb-3">{question.question}</legend>
+   {question.codeSnippet&&<ExamCode code={question.codeSnippet}/>}
+   {question.type==='mcq'?question.options?.map((text,i)=><label key={question.optionIds![i]} className="flex items-start gap-3 p-3 border border-slate-700 rounded-lg cursor-pointer has-[:checked]:border-blue-400">
+     <input type="radio" name={question.id} value={question.optionIds![i]} checked={answer===question.optionIds![i]} onChange={()=>onChange(question.optionIds![i])}/><span>{text}</span>
+   </label>):question.type==='fill_blank'?<label className="block">Blank 1
+     <input aria-label="Blank 1" maxLength={200} value={answer} onChange={e=>onChange(e.target.value)} autoComplete="off" spellCheck={false} className="block w-full mt-2 p-3 bg-slate-950 border border-slate-700 rounded font-mono"/>
+   </label>:<label className="block">{question.type==='coding'?'C++20 source':'Predicted output'}
+     {question.codingInstructions&&<p className="text-xs text-slate-400 my-2">{question.codingInstructions}</p>}
+     <textarea aria-label={question.type==='coding'?'C++20 source':'Predicted output'} spellCheck={false} maxLength={question.type==='coding'?32000:4000} rows={question.type==='coding'?16:5}
+       value={answer} onChange={e=>onChange(e.target.value)} className="block w-full mt-2 p-3 bg-slate-950 border border-slate-700 rounded font-mono whitespace-pre"/>
+   </label>}
+ </fieldset>;
+}
+export function ExamResults({attempt}:{attempt:ExamAttempt}){
+ const rows=attempt.questionScores||[];
+ return <section className="space-y-4">
+   <h2 className="text-xl font-bold">{attempt.score}% — {attempt.passed?'Passed':'Needs Review'}</h2>
+   {rows.length>0&&<p>{rows.reduce((n,q)=>n+q.earned,0)} / {rows.reduce((n,q)=>n+q.possible,0)} points</p>}
+   {(attempt.generatedQuestions||[]).map(q=>{
+     const row=rows.find(r=>r.questionId===q.id),coding=attempt.codingResults?.[q.id];
+     const answer=q.type==='mcq'?(q.optionIds?q.options?.[q.optionIds.indexOf(q.correctAnswer)]:q.options?.[q.correctAnswer]):q.acceptedAnswers?.join(' or ');
+     return <article key={q.id} className="p-4 border border-slate-700 rounded-xl space-y-2">
+       <h3 className="font-bold">{q.question}</h3>
+       {row&&<p>{row.earned}/{row.possible} points — {row.earned===row.possible?'Correct':row.earned===0?'Incorrect / unanswered':'Partial credit'}</p>}
+       <p className="text-xs text-blue-300">Topics: {q.topicIds?.join(', ')||'Historical mapping'}</p>
+       {answer!==undefined&&<div>Correct answer:<pre className="whitespace-pre-wrap font-mono">{String(answer)}</pre></div>}
+       <p className="text-sm text-slate-300">{q.explanation}</p>
+       {coding&&<div className="text-sm"><p>{coding.testsPassed}/{coding.totalTests} tests passed</p>
+         {coding.compileError&&<pre className="whitespace-pre-wrap text-red-300">{coding.compileError}</pre>}
+         {coding.runtimeError&&<pre className="whitespace-pre-wrap text-red-300">{coding.runtimeError}</pre>}
+         <p>{coding.verified?'Verified compiler result':'Compiler-backed assessment result'}</p>
+         <ul>{coding.testResults.filter(test=>!test.isHidden).map((test,i)=><li key={test.testId||i} className="my-2">
+           Public test {i+1}: {test.passed?'Passed':'Failed'}
+           <pre className="whitespace-pre-wrap">{test.error||test.actualOutput||''}</pre>
+         </li>)}</ul></div>}
+       {attempt.explanationResults?.[q.id]&&<p className="text-sm text-slate-400">Historical feedback: {attempt.explanationResults[q.id].feedback}</p>}
+     </article>;
+   })}
+ </section>;
+}
+export const ExamView:React.FC<Props>=({exam,userId,onExitExam,onOpenDocs,progress,onSelectUnit,onExamAttemptSaved})=>{
+ const [active,setActive]=useState<Exam>();const [sessionId,setSessionId]=useState('');const [answers,setAnswers]=useState<Record<string,string>>({});
+ const [selected,setSelected]=useState(0);const [remaining,setRemaining]=useState(0);const [error,setError]=useState('');const [busy,setBusy]=useState(false);
+ const [locked,setLocked]=useState(false);const [result,setResult]=useState<ExamAttempt>();const [warnings,setWarnings]=useState(0);
+ const version=useRef(0),end=useRef(0),inFlight=useRef(false),submitRef=useRef<(automatic?:boolean)=>Promise<void>>(async()=>{});
+ const autoSubmitted=useRef(false);const {setAssessmentMode,setAssessmentTitle}=useAssessment();
+ const unlocked=!progress||checkExamPrerequisites(exam,progress).isUnlocked;
+ async function start(shuffle=false){
+   const current=++version.current;setBusy(true);setError('');
+   try{
+     const sent=performance.now();
+     const response=await trustedRequest<{sessionId:string;exam:Exam;deadlineAt:number;serverNow:number}>('/api/assessment/exam/start',{examId:exam.id,...(shuffle?{sessionId}:{})});
+     if(version.current!==current)return;
+     setActive(response.exam);setSessionId(response.sessionId);setAnswers({});setSelected(0);setLocked(false);setResult(undefined);
+     autoSubmitted.current=false;end.current=performance.now()+Math.max(0,response.deadlineAt-response.serverNow-(performance.now()-sent));
+     setRemaining(Math.max(0,Math.ceil((end.current-performance.now())/1000)));
+   }catch(e){if(version.current===current)setError((e as Error).message);}
+   finally{if(version.current===current)setBusy(false);}
+ }
+ useEffect(()=>{setActive(undefined);setSessionId('');setResult(undefined);setAnswers({});setLocked(false);
+   if(unlocked)void start();return()=>{version.current++;};},[exam.id,userId,unlocked]);
+ useEffect(()=>{setAssessmentMode(result||!active?'none':'exam');setAssessmentTitle(active?.title);return()=>{setAssessmentMode('none');setAssessmentTitle(undefined);};},[active,result]);
+ useEffect(()=>{
+   if(!active||result)return;
+   const tick=()=>{const value=Math.max(0,Math.ceil((end.current-performance.now())/1000));setRemaining(value);
+     if(!value&&!autoSubmitted.current){autoSubmitted.current=true;void submitRef.current(true);}};
+   const timer=setInterval(tick,1000);const blur=()=>setWarnings(n=>n+1);window.addEventListener('blur',blur);
+   return()=>{clearInterval(timer);window.removeEventListener('blur',blur);};
+ },[active,result]);
+ async function submit(automatic=false){
+   if(inFlight.current||!sessionId||result)return;
+   if(!automatic&&!locked&&!window.confirm('Finalize these answers? Unanswered questions receive zero points.'))return;
+   inFlight.current=true;setBusy(true);setLocked(true);setError('');const current=version.current;
+   try{
+     const response=await trustedRequest<{attempt:ExamAttempt;progress:UserProgress}>('/api/assessment/exam/submit',{sessionId,answers,tabSwitchWarnings:warnings});
+     if(current!==version.current)return;
+     setResult(response.attempt);cacheTrustedExam(response.attempt,response.progress,userId);onExamAttemptSaved?.(response.progress);
+   }catch(e){if(current===version.current)setError((e as Error).message);}
+   finally{inFlight.current=false;if(current===version.current)setBusy(false);}
+ }
+ submitRef.current=submit;
+ async function review(){
+   const prior=progress?.examAttempts?.[exam.id];if(!prior)return;const id=prior.id||exam.id;
+   const current=++version.current;setBusy(true);setError('');
+   try{const attempt=await trustedRequest<ExamAttempt>(`/api/assessment/exam/${id}/review`);if(version.current===current)setResult(attempt);}
+   catch(e){if(version.current===current)setError((e as Error).message);}
+   finally{if(version.current===current)setBusy(false);}
+ }
+ const q=active?.questions[selected];
+ const reviewTopics = progress && result ? calculateReadiness(progress).weakTopics.filter(topic=>result.generatedQuestions?.some(q=>q.topicIds?.includes(topic.unitId))) : [];
+ return <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-5 text-slate-200">
+   <h1 className="text-2xl font-bold">{exam.title}</h1>
+   <div className="flex flex-wrap gap-3 text-sm">
+     <button onClick={onExitExam}>Return to Roadmap</button><button onClick={onOpenDocs}>C++ Reference</button>
+     {progress?.examAttempts?.[exam.id]&&<button disabled={busy} onClick={()=>void review()}>Review last finalized exam</button>}
+   </div>
+   {!unlocked&&<p>Complete the prerequisite topics before starting this exam.</p>}
+   {error&&<div role="alert" className="p-4 border border-amber-500 rounded"><p>{error}</p><button disabled={busy} onClick={()=>void start()}>Start a new exam</button></div>}
+   {busy&&<p role="status">{locked?'Compiling coding answers and finalizing results…':'Loading exam…'}</p>}
+   {result?<><ExamResults attempt={result}/>{onSelectUnit&&reviewTopics.map(topic=><button key={topic.unitId} onClick={()=>onSelectUnit(topic.unitId)}>Review {topic.topicTitle}: {topic.reason}</button>)}<button disabled={busy} onClick={()=>void start()}>Retake with a fresh question set</button>
+     {result.passed&&onSelectUnit&&getFirstUnitAfterExam(exam.id)&&<button onClick={()=>onSelectUnit(getFirstUnitAfterExam(exam.id)!.id)}>Continue curriculum</button>}</>:active&&q&&<>
+     <div className="flex flex-wrap justify-between gap-3"><span role="timer">Time remaining: {Math.floor(remaining/60)}:{String(remaining%60).padStart(2,'0')}</span><span>{Object.values(answers).filter(a=>a.trim()).length}/{active.questions.length} answered</span></div>
+     <nav aria-label="Exam questions" className="flex flex-wrap gap-2">{active.questions.map((item,i)=><button key={item.id} aria-current={i===selected?'step':undefined} onClick={()=>setSelected(i)} className="p-2 border border-slate-700 rounded">{i+1}{answers[item.id]?.trim()?' ✓':''}</button>)}</nav>
+     <p>{q.points} points · {q.difficulty} · {q.topicIds?.join(', ')}</p>
+     <ExamQuestionInput key={q.id} question={q} answer={answers[q.id]||''} onChange={value=>setAnswers(a=>({...a,[q.id]:value}))} disabled={locked||busy||remaining===0}/>
+     <div className="flex flex-wrap gap-4"><button disabled={selected===0} onClick={()=>setSelected(i=>i-1)}>Previous</button><button disabled={selected===active.questions.length-1} onClick={()=>setSelected(i=>i+1)}>Next</button>
+       <button disabled={busy} onClick={()=>void submit()}>{locked?'Retry original submission':'Submit exam'}</button>
+       <button disabled={busy||locked} onClick={()=>void start(true)}>Shuffle questions (same deadline)</button></div>
+   </>}
+ </div>;
 };

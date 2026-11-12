@@ -1,7 +1,5 @@
 import type { CodeEvaluationResult, Exam, ExamQuestionDetail } from '../types';
 import { authenticatedFetch } from './authenticatedFetch.js';
-import { canonicalExplanationId, EXPLANATION_CRITERIA, EXPLANATION_RUBRIC_VERSION,
-  explanationPercentage, unansweredExplanation, type ExplanationAssessment } from './explanationRubric.js';
 
 export interface GradedExam {
   questionScores: import('../types').ExamQuestionScore[];
@@ -9,8 +7,6 @@ export interface GradedExam {
   passed: boolean;
   codingResults: Record<string, CodeEvaluationResult>;
   codingPoints: Record<string, number>;
-  explanationResults: Record<string, ExplanationAssessment>;
-  explanationPoints: Record<string, number>;
 }
 
 export async function evaluateExamCode(question: ExamQuestionDetail, answer: string,
@@ -25,7 +21,7 @@ export async function evaluateExamCode(question: ExamQuestionDetail, answer: str
     response = await request('/api/evaluate-code', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ challengeId: question.codingChallengeId, studentCode: answer,
-        mode: 'assessment', wasAssisted: false, requestAiFeedback: false }),
+        mode: 'assessment', wasAssisted: false }),
       signal: AbortSignal.timeout(240_000),
     });
   } catch {
@@ -50,72 +46,38 @@ export async function evaluateExamCode(question: ExamQuestionDetail, answer: str
   return result;
 }
 
-export async function evaluateExamExplanation(question: ExamQuestionDetail, answer: string,
-  request: typeof fetch = authenticatedFetch): Promise<ExplanationAssessment> {
-  if (!answer.trim()) return unansweredExplanation(question.id);
-  let response: Response;
-  try {
-    response = await request('/api/assess-explanation', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ questionId: question.id, studentAnswer: answer }), signal: AbortSignal.timeout(75_000) });
-  } catch { throw new Error('Explanation evaluation could not be reached. Your answers have been retained; retry submission.'); }
-  if (!response.ok) {
-    if (response.status === 422) throw new Error('The grader could not assess an explanation confidently. Answers retained; retry or review your explanation.');
-    throw new Error('Explanation evaluation is unavailable. Your exam was not finalized; answers have been retained.');
-  }
-  let result: ExplanationAssessment;
-  try { result = await response.json(); }
-  catch { throw new Error('The explanation grader returned an invalid response. Your exam was not finalized.'); }
-  const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
-  if (!result || result.status !== 'graded' || result.questionId !== canonicalExplanationId(question.id) ||
-    result.rubricVersion !== EXPLANATION_RUBRIC_VERSION || result.evaluatedBy !== 'ai-rubric' ||
-    typeof result.model !== 'string' || !result.model || typeof result.feedback !== 'string' ||
-    !result.fundamentalError || typeof result.fundamentalError.present !== 'boolean' ||
-    typeof result.fundamentalError.feedback !== 'string' || typeof result.fundamentalError.evidence !== 'string' ||
-    (result.fundamentalError.present && (!result.fundamentalError.evidence.trim() || !normalize(answer).includes(normalize(result.fundamentalError.evidence)))) ||
-    !Array.isArray(result.criteria) || result.criteria.length !== 3 || EXPLANATION_CRITERIA.some(expected => {
-      const matching = result.criteria.filter(criterion => criterion?.id === expected.id);
-      const criterion = matching[0];
-      return matching.length !== 1 || ![0, 1, 2].includes(criterion.level) ||
-        typeof criterion.feedback !== 'string' || typeof criterion.evidence !== 'string' ||
-        (criterion.level > 0 && (!criterion.evidence.trim() || !normalize(answer).includes(normalize(criterion.evidence))));
-    })) throw new Error('The explanation grader returned an incomplete result. Your exam was not finalized.');
-  if (result.score !== explanationPercentage(result.criteria, result.fundamentalError.present)) {
-    throw new Error('The explanation score could not be validated. Your exam was not finalized.');
-  }
-  return result;
-}
-
 export async function gradeExam(exam: Exam, answers: Record<string, unknown>,
-  evaluateCode: typeof evaluateExamCode = evaluateExamCode,
-  evaluateExplanation: typeof evaluateExamExplanation = evaluateExamExplanation): Promise<GradedExam> {
+  evaluateCode: typeof evaluateExamCode = evaluateExamCode): Promise<GradedExam> {
   let earned = 0;
   const questionScores: GradedExam["questionScores"] = [];
   const possible = exam.questions.reduce((sum, question) => sum + question.points, 0);
   const codingResults: GradedExam['codingResults'] = {};
   const codingPoints: GradedExam['codingPoints'] = {};
-  const explanationResults: GradedExam['explanationResults'] = {};
-  const explanationPoints: GradedExam['explanationPoints'] = {};
   for (const question of exam.questions) {
     const before = earned;
     const answer = answers[question.id];
-    if (question.type === 'coding-challenge') {
+    if (question.type === 'coding') {
       const result = await evaluateCode(question, typeof answer === 'string' ? answer : '');
       codingResults[question.id] = result;
       const points = result.compiled && result.totalTests > 0
         ? Math.round(question.points * result.testsPassed / result.totalTests) : 0;
       codingPoints[question.id] = points;
       earned += points;
-    } else if (question.type === 'mcq' || question.type === 'true-false') {
-      if (answer === question.correctAnswer) earned += question.points;
-    } else {
-      const result = await evaluateExplanation(question, typeof answer === 'string' ? answer : '');
-      explanationResults[question.id] = result;
-      const points = Math.round(question.points * result.score / 100);
-      explanationPoints[question.id] = points;
-      earned += points;
-    }
+    } else if (question.type === 'mcq') {
+      if (typeof answer === 'string' && answer === question.correctAnswer) earned += question.points;
+    } else if (question.type === 'predict_output' || question.type === 'fill_blank') {
+      const normalize = question.type === 'predict_output' ? normalizeOutput : (s: string) => s.trim();
+      if (typeof answer === 'string' && answer.trim() && question.acceptedAnswers?.some(key=>normalize(answer)===normalize(key))) earned += question.points;
+    } else throw new Error('The exam format has been updated. Start a new exam; no failing grade was recorded.');
     questionScores.push({ questionId: question.id, earned: earned - before, possible: question.points });
   }
   const score = Math.round(earned / (possible || 100) * 100);
-  return { questionScores, score, passed: score >= (exam.passingScore || 50), codingResults, codingPoints, explanationResults, explanationPoints };
+  return { questionScores, score, passed: score >= (exam.passingScore || 50), codingResults, codingPoints };
+}
+
+export function normalizeOutput(value:string):string {
+  const lines=value.replace(/\r\n?/g,'\n').split('\n').map(line=>line.replace(/[ \t]+$/,''));
+  while(lines.length&&lines[0]==='')lines.shift();
+  while(lines.length&&lines[lines.length-1]==='')lines.pop();
+  return lines.join('\n');
 }

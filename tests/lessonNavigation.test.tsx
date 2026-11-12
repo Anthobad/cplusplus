@@ -43,7 +43,7 @@ async function mount(id = units[0].id, direct = false) {
   const navigate = (unitId: string) => renderer.update(view(unitId));
   const props = { progress, onSelectUnit: navigate, onCompleteUnit: complete,
     onSaveCodingResult: saved, onSaveQuizScore: quizSaved, onSelectExam: vi.fn(), onBackToRoadmap: vi.fn(),
-    onOpenAiWithContext: vi.fn(), onOpenDocs: vi.fn() };
+    onOpenDocs: vi.fn() };
   const view = (unitId: string) => <AssessmentProvider>
     {direct ? <UnitView {...props} unit={units.find(unit => unit.id === unitId)!} /> :
     <DomainUnitView {...props} unitId={unitId} />}
@@ -64,16 +64,10 @@ afterEach(async () => {
 });
 
 describe('Lesson navigation state', () => {
-  it('keeps practice AI review enabled by default but allows a tests-only submission', async () => {
-    await mount();
-    await click('C++ Coding Challenge');
-    await click('Run Tests');
-    expect(JSON.parse(vi.mocked(authenticatedFetch).mock.calls[0][1]!.body as string).requestAiFeedback).toBe(true);
-    const checkbox = renderer.root.findByType('input');
-    await act(async () => checkbox.props.onChange({ target: { checked: false } }));
-    await click('Run Tests');
-    const request = JSON.parse(vi.mocked(authenticatedFetch).mock.calls[1][1]!.body as string);
-    expect(request).toMatchObject({ mode: 'practice', requestAiFeedback: false });
+  it('runs compiler tests without optional review controls or parameters', async () => {
+    await mount(); await click('C++ Coding Challenge'); await click('Run Tests');
+    const request=JSON.parse(vi.mocked(authenticatedFetch).mock.calls[0][1]!.body as string);
+    expect(Object.keys(request).sort()).toEqual(['challengeId','mode','studentCode','wasAssisted']);
     expect(text(renderer.root)).toContain('Practice Tests Passed!');
   });
   it('keys the coding editor independently when an existing UnitView receives a new challenge', async () => {

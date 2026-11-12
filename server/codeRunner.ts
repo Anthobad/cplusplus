@@ -5,7 +5,7 @@ import path from "path";
 import os from "os";
 import { spawn } from "child_process";
 import { gcpMetadata } from "google-auth-library";
-import { TestCase, TestResult, AICodeFeedback } from "../src/types.js";
+import { TestCase, TestResult } from "../src/types.js";
 
 export type Comparator = "exact" | "trimmed" | "tokens" | "numeric";
 

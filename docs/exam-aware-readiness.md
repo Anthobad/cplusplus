@@ -1,5 +1,8 @@
 # Exam-aware topic mastery and readiness
 
+> Historical implementation report. AI-dependent behavior described below was retired by the [deterministic assessment migration](deterministic-assessment-migration.md); historical results remain preserved.
+
+
 Implemented locally, 12 November 2026. No deployment or production Firebase configuration change.
 
 ## Findings and implementation plan

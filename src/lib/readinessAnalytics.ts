@@ -94,9 +94,6 @@ export function calculateReadiness(progress: UserProgress): ReadinessSummary {
   });
   const coding=Object.values(progress.codingChallengeResults||{}).filter(c=>c.verified&&!c.wasAssisted&&numeric(c.score));
   dimensions.push({name:'Verified Coding',score:Math.round(mean(coding.map(c=>clamp(c.score)))),status:status(mean(coding.map(c=>clamp(c.score))),coding.length),dataPointsCount:coding.length,details:'Diagnostic only; coding is already included in topic mastery'});
-  const reports=(progress.mockInterviewReports||[]).filter(r=>numeric(r.overallScore));
-  const interview=Math.round(mean(reports.map(r=>clamp(r.overallScore))));
-  dimensions.push({name:'Technical Interview Performance',score:interview,status:status(interview,reports.length),dataPointsCount:reports.length,details:'Self-reported mock interview diagnostic; excluded from trusted curriculum readiness'});
   const assessed=topics.filter(t=>t.hasEvidence).length;
   const overallScore=Math.round(mean(topics.map(t=>t.score)));
   // Reached means the curriculum prefix through the current, completed or assessed topic.

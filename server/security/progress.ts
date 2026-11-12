@@ -2,8 +2,7 @@ import { addExamEvidence, examEvidenceForProgress } from '../../src/lib/examMast
 import { createHash, randomUUID } from 'node:crypto';
 import type { Exam, ExamAttempt, UserProgress, CodeEvaluationResult } from '../../src/types.js';
 import { ALL_UNITS, getUnitLockReason, migrateUserProgress, checkExamPrerequisites } from '../../src/data/curriculum.js';
-import { CURRICULUM_EXAMS } from '../../src/data/exams.js';
-import { generateRandomizedExam } from '../../src/data/examQuestionPools.js';
+import { ACTIVE_EXAMS as CURRICULUM_EXAMS, generateActiveExam as generateRandomizedExam, compatibleExam } from '../data/activeExams.js';
 import { HttpError, type Principal, type TrustedStore } from './store.js';
 
 export const EXAM_DELIVERY_GRACE_MS = 10_000;
@@ -110,6 +109,7 @@ export function createProgressService(store: TrustedStore, now = Date.now) {
       if (reshuffleSessionId) {
         const prior = docs[sessionPath];
         checkSession(prior, principal, time);
+        if (!compatibleExam(prior.exam)) throw new HttpError(409, 'The exam format has been updated. Start a new exam; no failing grade was recorded.');
         if (prior.exam.id !== examId || prior.submission || prior.outcome) throw new HttpError(409, 'This exam session cannot be shuffled.');
         if (time >= deadline(prior)) throw new HttpError(410, 'The exam deadline has passed.');
         value = { ...prior, exam: generated, partial: {}, deadlineAt: deadline(prior) };
@@ -126,7 +126,10 @@ export function createProgressService(store: TrustedStore, now = Date.now) {
   async function getSession(principal: Principal, sessionId: string) {
     if (typeof sessionId !== 'string' || !/^[a-f0-9-]{36}$/.test(sessionId)) throw new HttpError(400, 'Invalid exam session.');
     const session = await store.read(`_assessmentSessions/${sessionId}`);
+    // Finalized immutable outcomes remain replayable while retained, even after the active deadline/TTL.
+    if (session?.uid === principal.uid && session.outcome) return session;
     checkSession(session, principal, now());
+    if (!session.outcome && !compatibleExam(session.exam)) throw new HttpError(409, 'The exam format has been updated. Start a new exam; this session was retired without a failing grade.');
     checkFirstSubmission(session, now());
     return session as { uid: string; exam: Exam; createdAt: number; deadlineAt?: number; expiresAt: number; outcome?: any;
       submission?: { answers: Record<string, unknown>; key: string; receivedAt: number; tabSwitchWarnings: number };
@@ -179,6 +182,18 @@ export function createProgressService(store: TrustedStore, now = Date.now) {
       return { value: outcome, writes: { [root]: progress, [history]: stored, [sessionPath]: { ...session, outcome } } };
     });
   }
-  return { read, mutate, complete, quiz, coding, startExam, getSession, beginSubmission, remember, finishExam,
+  async function reviewExam(principal: Principal, sessionId: string) {
+    if (typeof sessionId !== 'string' || !/^[A-Za-z0-9_.:-]{1,160}$/.test(sessionId) || ['.','..'].includes(sessionId)) throw new HttpError(400, 'Invalid exam history ID.');
+    const root = path(principal);
+    const isLatest = CURRICULUM_EXAMS.some(exam => exam.id === sessionId);
+    let attempt = isLatest ? undefined : await store.read(`${root}/exams/${sessionId}`);
+    if (!attempt) {
+      const saved = (await store.read(root))?.examAttempts || {};
+      attempt = isLatest ? saved[sessionId] : Object.values(saved).find((value: any) => value.id === sessionId);
+    }
+    if (!attempt) throw new HttpError(403, 'A finalized exam belonging to this user is required.');
+    return attempt;
+  }
+  return { reviewExam, read, mutate, complete, quiz, coding, startExam, getSession, beginSubmission, remember, finishExam,
     reset: (principal: Principal) => mutate(principal, () => initialProgress(principal)) };
 }

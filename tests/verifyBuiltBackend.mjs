@@ -59,6 +59,10 @@ try {
     const wrongKey = generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey;
     assert.equal(await request(route, token({}, wrongKey)), 401);
   }
+  for (const route of ['/api/chat','/api/assess-explanation','/api/mock-interview']) {
+    const removed=await fetch(`${base}${route}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    assert.equal(removed.status,404);
+  }
   // A correctly signed JWT must reach the SDK's authenticated revocation lookup,
   // then fail closed for disabled/revoked users before any Firestore/compiler work.
   for (const record of [

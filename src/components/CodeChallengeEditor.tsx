@@ -7,7 +7,6 @@ import {
   Lightbulb,
   Eye,
   EyeOff,
-  Sparkles,
   Terminal,
   ShieldAlert,
   AlertTriangle,
@@ -41,7 +40,6 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalResult, setEvalResult] = useState<CodeEvaluationResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [includeAiFeedback, setIncludeAiFeedback] = useState(true);
   const pendingEvaluation = useRef<AbortController | null>(null);
 
   useEffect(() => () => {
@@ -83,9 +81,6 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
         studentCode: code,
         mode,
         wasAssisted,
-        requestAiFeedback: mode === "practice" && includeAiFeedback,
-        challengeTitle: challenge.title,
-        expectedBehavior: challenge.expectedBehavior,
       };
 
       const response = await authenticatedFetch("/api/evaluate-code", {
@@ -204,11 +199,6 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
           )}
 
           {/* Run / Evaluate Code */}
-          {mode === "practice" && <label className="flex items-center gap-1.5 text-xs text-slate-300">
-            <input type="checkbox" checked={includeAiFeedback} disabled={isEvaluating}
-              onChange={event => setIncludeAiFeedback(event.target.checked)} />
-            Include AI review (slower)
-          </label>}
           <button
             onClick={handleRunEvaluation}
             disabled={isEvaluating}
@@ -219,7 +209,7 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
             }`}
           >
             {isEvaluating ? (
-              <Sparkles className="h-3.5 w-3.5 animate-spin" />
+              <Clock className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Play className="h-3.5 w-3.5 fill-current" />
             )}
@@ -241,14 +231,14 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
             <>
               <ShieldAlert className="h-3.5 w-3.5 text-purple-400 shrink-0" />
               <span>
-                <strong>Assessment Mode:</strong> Hidden test cases enforced. AI Mentor and solution reveal are locked out. Verified pass required for progression.
+                <strong>Assessment Mode:</strong> Hidden test cases enforced. Solution reveal is locked out. Verified pass required for progression.
               </span>
             </>
           ) : (
             <>
               <HelpCircle className="h-3.5 w-3.5 text-blue-400 shrink-0" />
               <span>
-                <strong>Practice Mode:</strong> Public test cases, hints, and qualitative AI feedback enabled. Revealing solution marks attempt as assisted.
+                <strong>Practice Mode:</strong> Public test cases and authored hints are available. Revealing solution marks attempt as assisted.
               </span>
             </>
           )}
@@ -408,25 +398,7 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
                 </div>
               )}
 
-              {/* Qualitative AI Feedback (Advisory Only) */}
-              {evalResult.aiFeedback && (
-                <div className="mt-4 p-3 rounded-xl bg-slate-900/90 border border-blue-500/30 text-slate-300">
-                  <div className="flex items-center space-x-1.5 text-blue-400 font-semibold mb-1">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span>AI Engineering Code Review (Qualitative Advice)</span>
-                  </div>
-                  <p className="text-xs text-slate-200 mb-2 leading-relaxed">
-                    {evalResult.aiFeedback.feedback}
-                  </p>
-                  {evalResult.aiFeedback.suggestions && evalResult.aiFeedback.suggestions.length > 0 && (
-                    <ul className="space-y-1 text-[11px] text-slate-400 list-disc list-inside">
-                      {evalResult.aiFeedback.suggestions.map((s, idx) => (
-                        <li key={idx}>{s}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
+
             </div>
           </div>
         </div>

@@ -1,5 +1,8 @@
 # Compiler-backed exam coding
 
+> Historical implementation report. Current deterministic exam types, private answer banks and grading are documented in the [migration report](deterministic-assessment-migration.md). Compiler contracts remain intact.
+
+
 Exam coding answers now use the existing `/api/evaluate-code` endpoint in unassisted assessment mode. Coding points are derived from passed public/hidden tests; matching rubric words no longer earns coding credit. The subsequent priority-2 update adds [rubric-based explanation and code-analysis grading](rubric-based-explanation-grading.md).
 
 ## Contracts and scoring

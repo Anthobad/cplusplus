@@ -242,14 +242,14 @@ int main() {
 
   // 11. Security: Student C++ cannot access parent process application secrets
   it("security: student C++ cannot access host or server environment secrets", async () => {
-    process.env.GEMINI_API_KEY = "SUPER_SECRET_TEST_KEY_NEVER_LEAK";
+    process.env.APPLICATION_TEST_SECRET = "SUPER_SECRET_TEST_KEY_NEVER_LEAK";
 
     const result = await isolatedRunner.evaluate({
       code: `#include <iostream>
 #include <cstdlib>
 
 int main() {
-    const char* key = std::getenv("GEMINI_API_KEY");
+    const char* key = std::getenv("APPLICATION_TEST_SECRET");
     if (key != nullptr) {
         std::cout << "LEAK:" << key << "\\n";
     } else {

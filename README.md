@@ -1,6 +1,6 @@
 # Modern C++ Systems Engineering & Interview Roadmap
 
-A production-grade, full-stack C++ interview preparation and mastery platform designed for senior and systems software engineering candidates.
+A full-stack C++ learning platform with deterministic objective exams and compiler-backed coding assessments. No AI API keys or model services are required.
 
 [Security and migration requirements](docs/security-assessment-hardening.md): Node 24, server-verified Firebase authentication, trusted assessment writes and shared quotas are required. Review the migration/rollout notes before deploying the tightened Firestore rules; browser caches are never imported as verified evidence.
 
@@ -163,9 +163,10 @@ The curriculum has been reorganized into four structured Knowledge Domains match
 3. **Deterministic Scoring**:
    - Score is calculated deterministically: $\frac{\text{passed tests}}{\text{total tests}} \times 100$.
    - **Zero Fake Pass Fallbacks**: Any failed evaluation reports `"Code evaluation is temporarily unavailable"` and never modifies user progress. Code length or heuristics never result in a passing grade.
-4. **Decoupled AI Review**:
-   - AI provides qualitative review (idiomatic C++, readability, time/space complexity) but never overrides compiler/test correctness.
-   - If tests fail, the evaluation outcome is strictly FAILED regardless of AI comments.
+4. **Deterministic exams**:
+   - MCQs use stable option IDs; output and short blanks use exact trusted answer lists.
+   - Keys stay on the server until finalization. Coding retains compiler/test partial credit.
+   - See [question authoring and migration](docs/deterministic-assessment-migration.md).
 
 ---
 
@@ -173,12 +174,11 @@ The curriculum has been reorganized into four structured Knowledge Domains match
 
 - **Practice Mode**:
   - Hints enabled.
-  - Interactive AI Mentor guidance available.
   - Public test case runner with detailed stdout/stderr inspector.
   - Solution reveal available (marks the challenge as "assisted").
 - **Assessment Mode**:
-  - Active globally when `assessmentMode !== "none"` (`quiz`, `exam`, `coding-assessment`, `mock-interview`).
-  - Standard AI Mentor and hints are locked out.
+  - Active globally when `assessmentMode !== "none"` (`quiz`, `exam`, `coding-assessment`).
+  - Hints and reference-solution reveal are locked out.
   - Solution reveal disabled.
   - Gated by authoritative server-side hidden test cases and real compilation.
   - Required to unlock downstream units and certification milestone credentials.
@@ -193,7 +193,7 @@ The curriculum has been reorganized into four structured Knowledge Domains match
 
 ```bash
 # Install dependencies
-npm install
+npm ci
 
 # Start local full-stack server
 npm run dev

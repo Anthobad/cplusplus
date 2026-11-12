@@ -10,7 +10,6 @@ export interface SubmissionPayload {
   expectedBehavior?: string;
   mode?: "practice" | "assessment";
   wasAssisted?: boolean;
-  requestAiFeedback?: boolean;
   // Potentially untrusted client-supplied fields:
   testCases?: any[];
   hiddenTestCases?: any[];

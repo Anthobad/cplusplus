@@ -1,91 +1,50 @@
 import { describe, expect, it, vi } from 'vitest';
-import { gradeExam, evaluateExamCode } from '../src/lib/examGrading';
+import { gradeExam, evaluateExamCode, normalizeOutput } from '../src/lib/examGrading';
 import type { Exam, ExamQuestionDetail, CodeEvaluationResult } from '../src/types';
-import { unansweredExplanation } from '../src/lib/explanationRubric';
-
-const coding: ExamQuestionDetail = { id: 'random-id_s0', type: 'coding-challenge', points: 20,
-  question: 'Implement the function', explanation: '', codingChallengeId: 'exam-estl-cc-2', rubricKeywords: ['priority_queue', 'top'] };
-const result = (overrides: Partial<CodeEvaluationResult> = {}): CodeEvaluationResult => ({
-  compiled: true, passed: true, score: 100, testsPassed: 4, totalTests: 4, testResults: [],
-  mode: 'assessment', wasAssisted: false, verified: true, ...overrides,
-});
-const exam: Exam = { id: 'exam-test', title: 'Test', description: '', durationMinutes: 60,
-  passingScore: 50, allowCppReference: true, coversPhases: [2], questions: [
-    { id: 'mcq', type: 'mcq', points: 30, question: '', explanation: '', options: ['A', 'B'], correctAnswer: 1 },
-    { id: 'tf', type: 'true-false', points: 20, question: '', explanation: '', correctAnswer: false },
-    { id: 'why', type: 'why-this-code-works', points: 15, question: '', explanation: '', rubricKeywords: ['invariant'] },
-    { id: 'analysis', type: 'code-analysis', points: 15, question: '', explanation: '', rubricKeywords: ['reference'] },
-    coding,
-  ] };
-const nonCoding = { mcq: 1, tf: false, why: 'The invariant is preserved.', analysis: 'This reference remains valid.' };
-
-describe('Exam coding grading and failure handling', () => {
-  it('uses the canonical coding ID, assessment mode and no AI assistance/feedback', async () => {
-    const request = vi.fn().mockResolvedValue(new Response(JSON.stringify(result())));
-    await evaluateExamCode(coding, 'int findKthLargest(...) { return 1; }', request);
-    const [url, options] = request.mock.calls[0];
-    expect(url).toBe('/api/evaluate-code');
-    expect(JSON.parse(options.body)).toEqual({ challengeId: 'exam-estl-cc-2',
-      studentCode: 'int findKthLargest(...) { return 1; }', mode: 'assessment', wasAssisted: false, requestAiFeedback: false });
-    expect(JSON.parse(options.body).testCases).toBeUndefined();
-  });
-
-  it('awards no coding credit for matching words when compilation fails', async () => {
-    const evaluate = vi.fn().mockResolvedValue(result({ compiled: false, passed: false, verified: false,
-      testsPassed: 0, score: 0, compileError: 'error: invalid syntax' }));
-    const graded = await gradeExam(exam, { [coding.id]: 'priority_queue greater top minHeap.pop()' }, evaluate);
-    expect(graded.score).toBe(0); expect(graded.passed).toBe(false);
-    expect(graded.codingPoints[coding.id]).toBe(0);
-  });
-
-  it('scales coding points by actual passed tests and preserves other scoring/pass thresholds', async () => {
-    const evaluate = vi.fn().mockResolvedValue(result({ passed: false, verified: false, testsPassed: 2, score: 50 }));
-    const assess = vi.fn(async q => ({ ...unansweredExplanation(q.id), score: 100 }));
-    const graded = await gradeExam(exam, { ...nonCoding, [coding.id]: 'submitted implementation' }, evaluate, assess);
-    expect(graded.questionScores.find(q => q.questionId === coding.id)).toEqual({ questionId: coding.id, earned: 10, possible: 20 });
-    expect(graded.codingPoints[coding.id]).toBe(10); expect(graded.score).toBe(90); expect(graded.passed).toBe(true);
-    expect(graded.codingResults[coding.id].testsPassed).toBe(2);
-    expect(assess).toHaveBeenCalledTimes(2);
-  });
-
-  it('persists exact partial coding, explanation and code-analysis points for analytics', async () => {
-    const graded = await gradeExam(exam, { ...nonCoding, [coding.id]: 'implementation' },
-      async () => result({ passed: false, verified: false, testsPassed: 2, score: 50 }),
-      async q => ({ ...unansweredExplanation(q.id), score: 60 }));
-    expect(graded.questionScores.find(q => q.questionId === coding.id)).toEqual({ questionId: coding.id, earned: 10, possible: 20 });
-    expect(graded.questionScores.find(q => q.questionId === 'why')).toEqual({ questionId: 'why', earned: 9, possible: 15 });
-    expect(graded.questionScores.find(q => q.questionId === 'analysis')).toEqual({ questionId: 'analysis', earned: 9, possible: 15 });
-    expect(graded.score).toBe(78);
-  });
-
-  it('gives full coding points to an implementation passing all tests without matching keywords', async () => {
-    const evaluate = vi.fn().mockResolvedValue(result());
-    const graded = await gradeExam(exam, { [coding.id]: 'return anotherCorrectApproach();' }, evaluate);
-    expect(graded.codingPoints[coding.id]).toBe(20); expect(graded.score).toBe(20);
-  });
-
-  it('unanswered coding earns zero without invoking the API', async () => {
-    const request = vi.fn();
-    const value = await evaluateExamCode(coding, '', request);
-    expect(value.compiled).toBe(false); expect(value.score).toBe(0); expect(request).not.toHaveBeenCalled();
-  });
-
-  it.each([503, 429, 500])('does not finalize grading on HTTP %s', async status => {
-    const request = vi.fn().mockResolvedValue(new Response('{}', { status }));
-    await expect(gradeExam(exam, { ...nonCoding, [coding.id]: 'valid code' },
-      (q, code) => evaluateExamCode(q, code, request), async q => unansweredExplanation(q.id))).rejects.toThrow('not finalized');
-  });
-
-  it('retains the attempt on network, configuration and invalid-response failures', async () => {
-    await expect(evaluateExamCode(coding, 'code', vi.fn().mockRejectedValue(new Error('network')))).rejects.toThrow('retained');
-    for (const value of [null, { configurationError: true }, { error: 'runner unavailable' },
-      result({ totalTests: 0 }), result({ testsPassed: 8 }), result({ verified: false }), result({ mode: 'practice' })]) {
-      const request = vi.fn().mockResolvedValue(new Response(JSON.stringify(value)));
-      await expect(evaluateExamCode(coding, 'code', request)).rejects.toThrow();
-    }
-  });
-
-  it('rejects an unregistered coding question rather than keyword-grading it', async () => {
-    await expect(evaluateExamCode({ ...coding, codingChallengeId: undefined }, 'priority_queue top')).rejects.toThrow('not configured');
-  });
+const coding:ExamQuestionDetail={id:'coding',type:'coding',points:20,question:'Implement',explanation:'',codingChallengeId:'exam-estl-cc-2'};
+const result=(overrides:Partial<CodeEvaluationResult>={}):CodeEvaluationResult=>({compiled:true,passed:true,score:100,testsPassed:4,totalTests:4,testResults:[],mode:'assessment',wasAssisted:false,verified:true,...overrides});
+const exam:Exam={id:'test',title:'Test',description:'',durationMinutes:60,passingScore:50,allowCppReference:true,coversPhases:[1],questions:[
+ {id:'mcq',type:'mcq',points:30,question:'',explanation:'',options:['A','B','C','D'],optionIds:['a','b','c','d'],correctAnswer:'b'},
+ {id:'output',type:'predict_output',points:30,question:'',explanation:'',acceptedAnswers:['Hello World\n1  2\n3.0']},
+ {id:'blank',type:'fill_blank',points:20,question:'',explanation:'',acceptedAnswers:['std::size_t','size_t']},coding]};
+const answers={mcq:'b',output:'Hello World\n1  2\n3.0',blank:'size_t'};
+describe('Deterministic exam grading',()=>{
+ it('grades all objective types without executing code for them',async()=>{
+   const run=vi.fn(async()=>result());const graded=await gradeExam(exam,{...answers,coding:'implementation'},run);
+   expect(graded.score).toBe(100);expect(run).toHaveBeenCalledOnce();expect(graded.questionScores).toHaveLength(4);
+ });
+ it('normalizes only specified output whitespace',()=>{
+   expect(normalizeOutput('\r\n Hello  World \t\r3.0\r\n\r\n')).toBe(' Hello  World\n3.0');
+   expect(normalizeOutput('1  2')).not.toBe(normalizeOutput('1 2'));expect(normalizeOutput('3.0')).not.toBe('3');
+ });
+ it.each(['hello World\n1  2\n3.0','Hello World\n1 2\n3.0','Hello World\n1  2\n3',''])('rejects incorrect exact output %j',async output=>{
+   expect((await gradeExam({...exam,questions:[exam.questions[1]]},{output})).score).toBe(0);
+ });
+ it('accepts line endings and trailing blank lines',async()=>{expect((await gradeExam({...exam,questions:[exam.questions[1]]},{output:'\r\nHello World \t\r\n1  2\r3.0\r\n'})).score).toBe(100);});
+ it.each(['std::size_t',' size_t '])('accepts explicit blank alias %s',async blank=>{expect((await gradeExam({...exam,questions:[exam.questions[2]]},{blank})).score).toBe(100);});
+ it.each(['Size_t','size_t;','std :: size_t',''])('rejects blank %s',async blank=>{expect((await gradeExam({...exam,questions:[exam.questions[2]]},{blank})).score).toBe(0);});
+ it('does not confuse displayed option positions with stable IDs',async()=>{
+   const q={...exam.questions[0],options:['D','C','B','A'],optionIds:['d','c','b','a']};
+   expect((await gradeExam({...exam,questions:[q]},{mcq:'b'})).score).toBe(100);
+   expect((await gradeExam({...exam,questions:[q]},{mcq:2})).score).toBe(0);
+ });
+ it('uses only compiler test fractions for partial coding credit',async()=>{
+   const graded=await gradeExam(exam,{...answers,coding:'code'},async()=>result({passed:false,verified:false,testsPassed:2}));
+   expect(graded.score).toBe(90);expect(graded.codingPoints.coding).toBe(10);
+ });
+ it('preserves compile-failure zero and unanswered no-work policy',async()=>{
+   const request=vi.fn();expect((await evaluateExamCode(coding,'',request)).score).toBe(0);expect(request).not.toHaveBeenCalled();
+   expect((await gradeExam({...exam,questions:[coding]},{coding:'invalid'},async()=>result({compiled:false,passed:false,verified:false,testsPassed:0}))).score).toBe(0);
+ });
+ it.each([429,500,503])('does not finalize an infrastructure failure %s',async status=>{
+   await expect(gradeExam(exam,{coding:'code'},(q,a)=>evaluateExamCode(q,a,vi.fn(async()=>new Response('{}',{status}))))).rejects.toThrow('not finalized');
+ });
+ it('validates compiler result integrity and canonical request contract',async()=>{
+   const request=vi.fn<typeof fetch>(async()=>new Response(JSON.stringify(result())));await evaluateExamCode(coding,'valid',request);
+   expect(JSON.parse(request.mock.calls[0][1]!.body as string)).toEqual({challengeId:'exam-estl-cc-2',studentCode:'valid',mode:'assessment',wasAssisted:false});
+   for(const r of [result({totalTests:0}),result({testsPassed:9}),result({verified:false}),result({mode:'practice'}),{error:'unavailable'}]){
+     await expect(evaluateExamCode(coding,'valid',vi.fn(async()=>new Response(JSON.stringify(r))))).rejects.toThrow();
+   }
+ });
+ it('retires old free-text formats rather than regrading them',async()=>{await expect(gradeExam({...exam,questions:[{...coding,type:'code-analysis'}]},{})).rejects.toThrow('format has been updated');});
 });

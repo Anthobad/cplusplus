@@ -94,10 +94,10 @@ export const QuizModal: React.FC<QuizModalProps> = ({
           )}
         </div>
 
-        {/* Warning Banner: AI Mentor Disabled */}
+        {/* Assessment notice */}
         <div className="px-6 py-2 bg-slate-950/80 border-b border-slate-800 text-[11px] text-slate-400 flex items-center space-x-2">
           <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-          <span>Notice: AI Mentor is locked during assessment mode. You can repeat this quiz if you do not pass.</span>
+          <span>Notice: You can repeat this quiz if you do not pass.</span>
         </div>
 
         {/* Question Content */}

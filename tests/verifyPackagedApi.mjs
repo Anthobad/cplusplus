@@ -14,7 +14,7 @@ try {
   assert.equal((await health.json()).status, 'ok');
   const submission = await fetch(`${base}/api/evaluate-code`, {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({challengeId:'unknown-packaging-test',code:'int main(){}',mode:'assessment',requestAiFeedback:false}),
+    body: JSON.stringify({challengeId:'unknown-packaging-test',code:'int main(){}',mode:'assessment'}),
   });
   assert.equal(submission.status, 401);
   const result = await submission.json();
@@ -25,6 +25,10 @@ try {
     });
     assert.equal(response.status, 401, `${route} must require authentication`);
     assert.equal(typeof (await response.json()).error, 'string');
+  }
+  for(const route of ['/api/chat','/api/assess-explanation','/api/mock-interview']) {
+    const removed=await fetch(`${base}${route}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    assert.equal(removed.status,404);
   }
   console.log('Packaged Node ESM API: startup, health and evaluation routing passed.');
 } finally {

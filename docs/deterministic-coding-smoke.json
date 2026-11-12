@@ -1,0 +1,16 @@
+{
+  "measuredAt": "2026-11-12T08:02:04.847Z",
+  "location": "trusted direct evaluator using real Vercel Sandbox; no production API request or progress write",
+  "challengeId": "exam-estl-cc-2",
+  "status": 200,
+  "compiled": true,
+  "passed": true,
+  "verified": true,
+  "testsPassed": 5,
+  "totalTests": 5,
+  "hiddenResultsRedacted": true,
+  "snapshotHit": true,
+  "cleanup": [
+    "stopped"
+  ]
+}

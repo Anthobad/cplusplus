@@ -18,13 +18,11 @@ import { calculateReadiness, DimensionReadiness, WeakTopicItem } from "../lib/re
 interface ReadinessDashboardProps {
   progress: UserProgress;
   onSelectUnit: (unitId: string) => void;
-  onStartMockInterview: () => void;
 }
 
 export const ReadinessDashboard: React.FC<ReadinessDashboardProps> = ({
   progress,
   onSelectUnit,
-  onStartMockInterview,
 }) => {
   const readiness = React.useMemo(() => calculateReadiness(progress), [progress]);
 
@@ -43,13 +41,7 @@ export const ReadinessDashboard: React.FC<ReadinessDashboardProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={onStartMockInterview}
-          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-purple-500/20 self-start md:self-center"
-        >
-          <Brain className="h-4 w-4" />
-          <span>Launch Mock Interview</span>
-        </button>
+
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

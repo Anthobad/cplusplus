@@ -17,17 +17,14 @@ import { type User } from "firebase/auth";
 import { useAssessment } from "../lib/AssessmentContext";
 
 interface NavbarProps {
-  currentView: "roadmap" | "unit" | "exam" | "mock-interview" | "readiness" | "interview-practice";
+  currentView: "roadmap" | "unit" | "exam" | "readiness" | "interview-practice";
   progress: UserProgress;
   currentUser: User | null;
   onNavigateHome: () => void;
   onNavigateReadiness: () => void;
-  onNavigateMockInterview: () => void;
   onOpenDocs: () => void;
-  onToggleAiChat: () => void;
   onOpenAuth: () => void;
   onSignOut?: () => void;
-  isAiChatOpen: boolean;
   isInExamOrQuiz?: boolean;
   activeExamTitle?: string;
 }
@@ -38,17 +35,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onNavigateHome,
   onNavigateReadiness,
-  onNavigateMockInterview,
   onOpenDocs,
-  onToggleAiChat,
   onOpenAuth,
   onSignOut,
-  isAiChatOpen,
   activeExamTitle,
 }) => {
   const stats = calculateOverallProgress(progress);
   const isRegistered = currentUser && !currentUser.isAnonymous;
-  const { assessmentMode, isAssessmentActive, canUseAiMentor, assessmentTitle } = useAssessment();
+  const { assessmentMode, isAssessmentActive, assessmentTitle } = useAssessment();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
@@ -100,17 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <TrendingUp className="h-3.5 w-3.5" />
               <span>Readiness</span>
             </button>
-            <button
-              onClick={onNavigateMockInterview}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
-                currentView === "mock-interview"
-                  ? "bg-slate-900 text-purple-400 border border-slate-800"
-                  : "text-slate-400 hover:text-purple-300"
-              }`}
-            >
-              <Brain className="h-3.5 w-3.5" />
-              <span>Mock Interview</span>
-            </button>
+
           </nav>
         </div>
 
@@ -125,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ? `QUIZ: ${assessmentTitle || "Knowledge Check"}`
                 : assessmentMode === "coding-assessment"
                 ? `ASSESSMENT: ${assessmentTitle || "Verified Coding"}`
-                : `MOCK INTERVIEW: ${assessmentTitle || "In Progress"}`}
+                : `ASSESSMENT: ${assessmentTitle || "In Progress"}`}
             </span>
           </div>
         ) : (
@@ -155,30 +139,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <BookOpen className="h-4 w-4 text-blue-400" />
             <span className="hidden sm:inline">C++ Library</span>
-          </button>
-
-          {/* AI Mentor Chat Button */}
-          <button
-            id="toggle-ai-chat-btn"
-            onClick={onToggleAiChat}
-            disabled={!canUseAiMentor}
-            className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium transition-all shadow-sm ${
-              !canUseAiMentor
-                ? "opacity-40 cursor-not-allowed bg-slate-900 text-slate-500 border border-slate-800"
-                : isAiChatOpen
-                ? "bg-purple-600 text-white shadow-lg shadow-purple-500/20"
-                : "bg-purple-600/10 text-purple-300 hover:bg-purple-600/20 border border-purple-500/30"
-            }`}
-            title={
-              !canUseAiMentor
-                ? `AI Mentor is locked during active assessments (${assessmentMode})`
-                : "Ask AI C++ Systems Mentor"
-            }
-          >
-            <Brain className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {!canUseAiMentor ? "AI Locked" : "AI Mentor"}
-            </span>
           </button>
 
           {/* Authentication & User Account Button */}

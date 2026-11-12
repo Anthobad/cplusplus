@@ -1,0 +1,9 @@
+{
+  "measuredAt": "2026-11-12T07:57:40.128Z",
+  "location": "local Node 24 in-process objective grading; excludes authentication, Firestore, compiler, API and browser networking",
+  "questionsPerBatch": 7,
+  "samples": 2000,
+  "meanMs": 0.0037643960000002465,
+  "medianMs": 0.0012430000000165364,
+  "p95Ms": 0.006950000000017553
+}

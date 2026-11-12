@@ -1,5 +1,8 @@
 # Vercel Sandbox integration
 
+> The current runner restores the trusted compiler snapshot, with fresh provisioning as recovery. See [snapshot retention](compiler-snapshot-retention.md). The [deterministic migration](deterministic-assessment-migration.md) removes AI services without changing these isolation settings.
+
+
 The snapshot/batched-supervisor optimization is implemented locally and awaits deployment approval. See [submission latency optimization](submission-latency-optimization.md) for the new architecture, actual measurements, recovery and deployment status. The original provisioning measurements below describe the previous deployed implementation.
 
 The existing React/Vite application and Express API remain in place. `api/index.ts` exports the same Express application for Vercel's Node.js function runtime. API paths are routed to this function; the existing SPA stays in `dist`. Google hosting still starts the existing Express listener and serves its static files. The development compiler daemon is imported only when needed for local development.

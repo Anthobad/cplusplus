@@ -81,12 +81,6 @@ describe("Interview Readiness & Needs Review Analytics", () => {
     expect(fundDim!.status).toBe("Needs Review");
     expect(fundDim!.score).toBe(21);
 
-    // Interview Performance dimension -> 78% -> "Developing"
-    const intDim = readiness.dimensions.find((d) => d.name === "Technical Interview Performance");
-    expect(intDim).toBeDefined();
-    expect(intDim!.status).toBe("Developing");
-    expect(intDim!.score).toBe(78);
-
     // Weak topics section: must detect quiz-t18 (55%) and cc-t18 (40%)
     expect(readiness.weakTopics.length).toBeGreaterThanOrEqual(1);
     const weakUnit18 = readiness.weakTopics.find((w) => w.unitId === "topic-18");

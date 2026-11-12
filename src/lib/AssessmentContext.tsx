@@ -5,7 +5,6 @@ export interface AssessmentContextValue {
   assessmentMode: AssessmentMode;
   setAssessmentMode: (mode: AssessmentMode) => void;
   isAssessmentActive: boolean;
-  canUseAiMentor: boolean;
   assessmentTitle?: string;
   setAssessmentTitle: (title: string | undefined) => void;
 }
@@ -14,7 +13,6 @@ const AssessmentContext = createContext<AssessmentContextValue>({
   assessmentMode: "none",
   setAssessmentMode: () => {},
   isAssessmentActive: false,
-  canUseAiMentor: true,
   assessmentTitle: undefined,
   setAssessmentTitle: () => {},
 });
@@ -24,9 +22,6 @@ export const AssessmentProvider: React.FC<{ children: ReactNode }> = ({ children
   const [assessmentTitle, setAssessmentTitle] = useState<string | undefined>(undefined);
 
   const isAssessmentActive = assessmentMode !== "none";
-  // RULE 7: Normal AI Mentor must be disabled whenever assessmentMode !== "none"
-  // (Mock interview uses its dedicated AI interviewer, not normal mentor)
-  const canUseAiMentor = assessmentMode === "none";
 
   return (
     <AssessmentContext.Provider
@@ -34,7 +29,6 @@ export const AssessmentProvider: React.FC<{ children: ReactNode }> = ({ children
         assessmentMode,
         setAssessmentMode,
         isAssessmentActive,
-        canUseAiMentor,
         assessmentTitle,
         setAssessmentTitle,
       }}

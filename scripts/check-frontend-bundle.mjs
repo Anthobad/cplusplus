@@ -19,7 +19,7 @@ visit(entry);
 for (const suffix of [
   'domain-1.json', 'domain-2.json', 'domain-3.json', 'domain-4.json',
   'DomainUnitView.tsx', 'ExamScreen.tsx', 'CppDocsModal.tsx',
-  'AiMentorDrawer.tsx', 'MockInterviewView.tsx', 'ReadinessDashboard.tsx', 'InterviewPracticeView.tsx',
+  'ReadinessDashboard.tsx', 'InterviewPracticeView.tsx',
 ]) {
   const key = Object.keys(manifest).find(item => item.endsWith(suffix));
   assert(key, `Expected a separate chunk for ${suffix}.`);

@@ -5,7 +5,6 @@ import { createProgressService, EXAM_DELIVERY_GRACE_MS, EXAM_SESSION_RETENTION_M
 import { createTrustedRoutes, validateCode } from '../server/security/routes';
 import { HttpError, type TrustedStore, type Principal } from '../server/security/store';
 import { ALL_UNITS } from '../src/data/curriculum';
-import { canonicalExplanationId, unansweredExplanation } from '../src/lib/explanationRubric';
 import { createSecureEvaluator } from '../server/security/evaluator';
 import { LocalCodeRunner, IsolatedProductionRunner } from '../server/codeRunner';
 
@@ -32,12 +31,12 @@ const verify = async (token: string) => {
 };
 
 async function withApp(store: TrustedStore, run: (base: string, work: ReturnType<typeof vi.fn>) => Promise<void>,
-  explanation: (id: string, answer: string) => Promise<any> = async () => { throw new Error('provider down'); }, now = Date.now) {
+  unused?: undefined, now = Date.now) {
   const app = express(); app.use(express.json());
   const access = createAccess(store, verify, now), progress = createProgressService(store, now);
   const work = vi.fn(async () => ({ status: 200, result: { compiled: true, passed: true, score: 100,
     testsPassed: 2, totalTests: 2, testResults: [], mode: 'assessment', wasAssisted: false, verified: true } as any }));
-  app.use('/api', createTrustedRoutes({ access, progress, evaluate: work, explanation }));
+  app.use('/api', createTrustedRoutes({ access, progress, evaluate: work }));
   app.post('/api/evaluate-code', access.authenticate, access.limited('execution', async (req, res) => {
     validateCode(req.body);
     const outcome = await work();
@@ -218,7 +217,7 @@ describe('Trusted progress and API security', () => {
     await service.read(user);
     await service.mutate(user, current => ({ ...current, completedUnitIds: ALL_UNITS.slice(0, 18).map(unit => unit.id) }));
     const session = await service.startExam(user, 'exam-foundations');
-    const answers = Object.fromEntries(session.exam.questions.filter(question => ['mcq', 'true-false'].includes(question.type))
+    const answers = Object.fromEntries(session.exam.questions.slice(0,5).filter(question => question.type === 'mcq')
       .map(question => [question.id, question.correctAnswer]));
     await withApp(store, async (base, work) => {
       const first = await post(base, '/assessment/exam/submit', { sessionId: session.sessionId, answers });
@@ -254,34 +253,6 @@ describe('Trusted progress and API security', () => {
         expect(work).toHaveBeenCalledTimes(3);
       });
     });
-  });
-  it('retains server-validated partial grading on outage, then retries without awarding an incomplete attempt', async () => {
-    const { store, session, now, advanceTo } = await timedExam();
-    advanceTo(session.deadlineAt - 1000);
-    const answers = Object.fromEntries(session.exam.questions.filter(question => question.type !== 'coding-challenge')
-      .map(question => [question.id, ['mcq', 'true-false'].includes(question.type) ? question.correctAnswer : 'Clear explanation supplied.']));
-    let calls = 0;
-    const judge = async (id: string, answer: string) => {
-      if (++calls === 2) {
-        advanceTo(session.deadlineAt + 60_000);
-        throw new Error('temporary provider outage');
-      }
-      const result = unansweredExplanation(canonicalExplanationId(id));
-      return { ...result, evaluatedBy: 'ai-rubric', model: 'test', score: 100,
-        criteria: result.criteria.map(criterion => ({ ...criterion, level: 2, evidence: answer, feedback: 'Correct explanation.' })) };
-    };
-    await withApp(store, async base => {
-      const request = { sessionId: session.sessionId, answers };
-      expect((await post(base, '/assessment/exam/submit', request)).status).toBe(503);
-      expect(store.documents['users/learner-a'].examAttempts).toEqual({});
-      expect(Object.keys(store.documents[`_assessmentSessions/${session.sessionId}`].partial)).toHaveLength(1);
-      expect((await post(base, '/assessment/exam/submit', { ...request, answers: {} })).status).toBe(409);
-      expect(calls).toBe(2); // Changed answers cannot trigger any more provider work.
-      const retry = await post(base, '/assessment/exam/submit', request);
-      expect(retry.status).toBe(200);
-      expect((await retry.json()).grading.score).toBe(80);
-      expect(calls).toBe(3);
-    }, judge, now);
   });
   it('shares global/user concurrency leases across instances and expires abandoned leases safely', async () => {
     let now = 0;

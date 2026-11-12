@@ -1,5 +1,6 @@
-import { ExamQuestionDetail, Exam } from "../types";
-import { withAssessmentPools } from './assessmentContent.js';
+/** Private legacy source: retained for compatibility and authored-bank migration, never browser imports. */
+import { ExamQuestionDetail, Exam } from "../../src/types";
+import { withAssessmentPools } from './legacyAssessment.js';
 
 /**
  * Extensive question pools for each of the 4 milestone exams.

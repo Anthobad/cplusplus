@@ -34,7 +34,7 @@ This service provides an isolated microservice for compiling and executing untru
 | **Process Termination** | Process Group `SIGKILL` | Runaway processes and all child forks are terminated immediately on timeout. |
 | **Time Limits** | 8000ms compilation / 2500ms per test | Halts infinite loops and heavy computational stalls. |
 | **Buffer Cap** | 64KB stdout/stderr slice | Prevents output flooding attacks (`while(true) cout << 'a'`). |
-| **Secret Sanitization** | Stripped environment (`PATH`, `TMPDIR` only) | Application secrets (`GEMINI_API_KEY`, etc.) are never present in the runner process. |
+| **Secret Sanitization** | Stripped environment (`PATH`, `TMPDIR` only) | Application secrets (`FIREBASE_SERVICE_ACCOUNT_JSON`, etc.) are never present in the runner process. |
 | **Ephemeral Filesystem** | Per-request UUID temp dir unlinked in `finally` | Zero persistence of student source code or compiled binaries. |
 | **Host Segregation** | Separate Cloud Run container | In production, student code is never executed inside the website container. |
 

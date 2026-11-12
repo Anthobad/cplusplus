@@ -13,7 +13,7 @@ const report: any = { location: 'local Express API with real Vercel Sandbox exec
 try {
   const response = await fetch(`http://127.0.0.1:${address.port}/api/evaluate-code`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ challengeId: 'cc-t1', code: '#include <iostream>\nconsteval int cpp20(){return 42;}\nint main(){static_assert(cpp20()==42); std::cout << "Hello, modern C++!";}', mode: 'assessment', wasAssisted: false, requestAiFeedback: false,
+    body: JSON.stringify({ challengeId: 'cc-t1', code: '#include <iostream>\nconsteval int cpp20(){return 42;}\nint main(){static_assert(cpp20()==42); std::cout << "Hello, modern C++!";}', mode: 'assessment', wasAssisted: false,
       testCases: [{ input: '', expectedOutput: 'client tampered answer' }] }),
     signal: AbortSignal.timeout(240000),
   });

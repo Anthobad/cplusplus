@@ -1,5 +1,8 @@
 # Production submission latency investigation — 25 October 2026
 
+> Historical implementation report. AI-dependent behavior described below was retired by the [deterministic assessment migration](deterministic-assessment-migration.md); historical results remain preserved.
+
+
 > Update, 3 November 2026: the seven-day retention and age cutoff described in this historical investigation are superseded by [non-expiring compiler snapshot maintenance](compiler-snapshot-retention.md). The replacement snapshot is ready locally; deployment and production timing verification are still required.
 
 

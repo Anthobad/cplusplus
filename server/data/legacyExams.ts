@@ -1,5 +1,6 @@
-import { Exam } from "../types";
-import { withAssessmentCorrections } from './assessmentContent.js';
+/** Private legacy source: retained for compatibility and authored-bank migration, never browser imports. */
+import { Exam } from "../../src/types";
+import { withAssessmentCorrections } from './legacyAssessment.js';
 
 export const CURRICULUM_EXAMS: Exam[] = withAssessmentCorrections([
   {

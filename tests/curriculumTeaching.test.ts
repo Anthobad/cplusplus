@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_UNITS, ALL_PHASES } from '../src/data/curriculum';
-import { CURRICULUM_EXAMS } from '../src/data/exams';
-import { EXAM_QUESTION_POOLS, generateRandomizedExam } from '../src/data/examQuestionPools';
+import { CURRICULUM_EXAMS } from '../server/data/legacyExams';
+import { EXAM_QUESTION_POOLS, generateRandomizedExam } from '../server/data/legacyQuestionPools';
 
 describe('Beginner teaching and assessment integrity', () => {
   it('gives every topic a complete example, trace, limits and transfer practice', () => {

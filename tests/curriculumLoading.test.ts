@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import * as full from '../src/data/curriculum';
 import * as summary from '../src/data/curriculumSummary';
-import { CURRICULUM_EXAMS } from '../src/data/exams';
+import { CURRICULUM_EXAMS } from '../server/data/legacyExams';
 import { createDomainLoader, loadCurriculumDomain, loadUnit } from '../src/data/loadCurriculum';
 import type { UserProgress } from '../src/types';
 

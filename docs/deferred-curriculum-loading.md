@@ -1,5 +1,8 @@
 # Deferred curriculum and supporting content
 
+> Historical implementation report. AI-dependent behavior described below was retired by the [deterministic assessment migration](deterministic-assessment-migration.md); historical results remain preserved.
+
+
 Priority 5 reduces the JavaScript needed for the initial roadmap. Lesson bodies are loaded by domain; exams, reference docs, the AI mentor, readiness, mock interviews and optional interview practice load when opened.
 
 | Initial JavaScript | Before | After |

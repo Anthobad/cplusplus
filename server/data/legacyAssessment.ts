@@ -1,6 +1,7 @@
-import { withQuestionTopics } from './examTopics.js';
-import type { Exam, ExamQuestionDetail } from '../types';
-import { EXAM_CODING } from './examCoding.js';
+/** Private legacy source: retained for compatibility and authored-bank migration, never browser imports. */
+import { withQuestionTopics } from '../../src/data/examTopics.js';
+import type { Exam, ExamQuestionDetail } from '../../src/types';
+import { EXAM_CODING } from '../../src/data/examCoding.js';
 
 // Correct educational statements without changing grading, sampling or challenge execution.
 const corrections: Record<string, Partial<ExamQuestionDetail>> = {

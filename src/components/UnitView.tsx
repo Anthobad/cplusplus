@@ -31,7 +31,6 @@ interface UnitViewProps {
   onCompleteUnit: (unitId: string) => void | Promise<void>;
   onSaveQuizScore: (quizId: string, score: number, passed: boolean) => void;
   onSaveCodingResult?: (challengeId: string, result: { passed: boolean; score: number; verified: boolean; wasAssisted: boolean }) => void;
-  onOpenAiWithContext: () => void;
   onOpenDocs: () => void;
 }
 
@@ -44,7 +43,6 @@ export const UnitView: React.FC<UnitViewProps> = ({
   onCompleteUnit,
   onSaveQuizScore,
   onSaveCodingResult,
-  onOpenAiWithContext,
   onOpenDocs
 }) => {
   const { setAssessmentMode, setAssessmentTitle } = useAssessment();

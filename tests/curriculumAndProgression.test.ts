@@ -9,7 +9,7 @@ import {
   checkExamPrerequisites,
   getNextStepAfterUnit,
 } from "../src/data/curriculum";
-import { CURRICULUM_EXAMS } from "../src/data/exams";
+import { CURRICULUM_EXAMS } from "../server/data/legacyExams";
 import { UserProgress } from "../src/types";
 
 describe("Curriculum Order & Pedagogical Integrity", () => {

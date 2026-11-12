@@ -1,5 +1,5 @@
 import React, { lazy, useState, useEffect, useRef } from "react";
-import type { UserProgress, MockInterviewReport } from "./types";
+import type { UserProgress } from "./types";
 import { ALL_UNITS, getUnitById, checkExamPrerequisites, getUnitLockReason } from "./data/curriculumSummary";
 import { CURRICULUM_EXAMS } from "./data/curriculumSummary";
 import { 
@@ -27,31 +27,26 @@ const UnitView = lazy(() => import('./components/DomainUnitView'));
 
 const ExamView = lazy(() => import('./components/ExamScreen'));
 
-const MockInterviewView = lazy(() => import('./components/MockInterviewView').then(module => ({ default: module.MockInterviewView })));
 
 const ReadinessDashboard = lazy(() => import('./components/ReadinessDashboard').then(module => ({ default: module.ReadinessDashboard })));
 
 const CppDocsModal = lazy(() => import('./components/CppDocsModal').then(module => ({ default: module.CppDocsModal })));
 
-const AiMentorDrawer = lazy(() => import('./components/AiMentorDrawer').then(module => ({ default: module.AiMentorDrawer })));
 
 function AppContent() {
   // Navigation views
-  const [currentView, setCurrentView] = useState<"roadmap" | "unit" | "exam" | "mock-interview" | "readiness" | "interview-practice">("roadmap");
+  const [currentView, setCurrentView] = useState<"roadmap" | "unit" | "exam" | "readiness" | "interview-practice">("roadmap");
   const [selectedUnitId, setSelectedUnitId] = useState<string>("topic-1");
   const [selectedExamId, setSelectedExamId] = useState<string>("exam-foundations");
 
   // Modals & Drawers
   const [hasOpenedDocs, setHasOpenedDocs] = useState(false);
-  const [hasOpenedMentor, setHasOpenedMentor] = useState(false);
   const [isDocsOpen, setIsDocsOpen] = useState<boolean>(false);
-  const [isAiChatOpen, setIsAiChatOpen] = useState<boolean>(false);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const openDocs = () => { setHasOpenedDocs(true); setIsDocsOpen(true); };
-  const openMentor = () => { setHasOpenedMentor(true); setIsAiChatOpen(true); };
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -64,7 +59,6 @@ function AppContent() {
   useEffect(() => { progressRef.current = progress; }, [progress]);
 
   // Assessment Context
-  const { assessmentMode, canUseAiMentor, isAssessmentActive } = useAssessment();
 
   // Subscribe to Firebase Auth changes
   useEffect(() => {
@@ -128,13 +122,6 @@ function AppContent() {
   const activeUnit = getUnitById(selectedUnitId) || ALL_UNITS[0];
   const activeExam = CURRICULUM_EXAMS.find(e => e.id === selectedExamId) || CURRICULUM_EXAMS[0];
 
-  // Automatically close AI chat if entering an assessment
-  useEffect(() => {
-    if (!canUseAiMentor && isAiChatOpen) {
-      setIsAiChatOpen(false);
-    }
-  }, [canUseAiMentor, isAiChatOpen]);
-
   // Handlers for progression with strict exam gating enforcement
   const handleSelectUnit = (unitId: string) => {
     const lock = getUnitLockReason(unitId, progressRef.current);
@@ -196,11 +183,7 @@ function AppContent() {
     setProgress(await getUserProgress(userId));
   };
 
-  const handleSaveMockReport = async (report: MockInterviewReport) => {
-    setProgress(await getUserProgress(userId));
-    setToastMessage("Interview report saved to your profile.");
-    setTimeout(() => setToastMessage(null), 4000);
-  };
+
 
   const handleOpenResetModal = () => {
     setIsResetModalOpen(true);
@@ -227,7 +210,6 @@ function AppContent() {
 
       setCurrentView("roadmap");
       setSelectedUnitId("week-1");
-      setIsAiChatOpen(false);
       setIsAuthOpen(false);
 
       setToastMessage("Signed out successfully. Switched to guest mode.");
@@ -282,12 +264,9 @@ function AppContent() {
         currentUser={currentUser}
         onNavigateHome={() => setCurrentView("roadmap")}
         onNavigateReadiness={() => setCurrentView("readiness")}
-        onNavigateMockInterview={() => setCurrentView("mock-interview")}
         onOpenDocs={openDocs}
-        onToggleAiChat={() => { setHasOpenedMentor(true); setIsAiChatOpen(!isAiChatOpen); }}
         onOpenAuth={() => setIsAuthOpen(true)}
         onSignOut={handleSignOut}
-        isAiChatOpen={isAiChatOpen}
         activeExamTitle={activeExam.title}
       />
 
@@ -301,7 +280,6 @@ function AppContent() {
             onSelectExam={handleSelectExam}
             onResetProgress={handleOpenResetModal}
             onNavigateReadiness={() => setCurrentView("readiness")}
-            onNavigateMockInterview={() => setCurrentView("mock-interview")}
             onNavigateInterviewPractice={() => setCurrentView("interview-practice")}
           />
         )}
@@ -320,7 +298,6 @@ function AppContent() {
             onCompleteUnit={handleCompleteUnit}
             onSaveQuizScore={handleSaveQuizScore}
             onSaveCodingResult={handleSaveCodingResult}
-            onOpenAiWithContext={openMentor}
             onOpenDocs={openDocs}
           />
         )}
@@ -337,20 +314,10 @@ function AppContent() {
           />
         )}
 
-        {currentView === "mock-interview" && (
-          <MockInterviewView
-            progress={progress}
-            onNavigateHome={() => setCurrentView("roadmap")}
-            onSelectUnit={handleSelectUnit}
-            onSaveReport={handleSaveMockReport}
-          />
-        )}
-
         {currentView === "readiness" && (
           <ReadinessDashboard
             progress={progress}
             onSelectUnit={handleSelectUnit}
-            onStartMockInterview={() => setCurrentView("mock-interview")}
           />
         )}
         </DeferredContent>
@@ -361,16 +328,6 @@ function AppContent() {
       <CppDocsModal
         isOpen={isDocsOpen}
         onClose={() => setIsDocsOpen(false)}
-      />
-
-      </DeferredContent>}
-
-      {/* Gemini AI Systems Mentor Drawer */}
-      {hasOpenedMentor && <DeferredContent label="AI mentor" overlay active={isAiChatOpen} onCancel={() => setIsAiChatOpen(false)}>
-      <AiMentorDrawer
-        isOpen={isAiChatOpen}
-        onClose={() => setIsAiChatOpen(false)}
-        currentUnit={currentView === "unit" ? activeUnit : null}
       />
 
       </DeferredContent>}

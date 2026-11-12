@@ -104,9 +104,7 @@ export interface CodeSubmissionRequest {
   studentCode: string;
   mode: "practice" | "assessment";
   wasAssisted: boolean;
-  requestAiFeedback?: boolean;
-  challengeTitle?: string;
-  expectedBehavior?: string;
+
 }
 
 export interface CodeEvaluationResult {
@@ -298,10 +296,13 @@ export type ExamPartType =
   | "explanation";    // Part E: 2 Conceptual Rubric questions
 
 export interface ExamQuestionDetail {
+  schemaVersion?: 2;
   topicIds?: string[];
+  optionIds?: string[];
+  acceptedAnswers?: string[];
   id: string;
   part?: ExamPartType;
-  type: "mcq" | "true-false" | "code-reading" | "debugging" | "coding-challenge" | "interview-explanation" | "why-this-code-works" | "code-analysis";
+  type: "predict_output" | "fill_blank" | "coding" | "mcq" | "true-false" | "code-reading" | "debugging" | "coding-challenge" | "interview-explanation" | "why-this-code-works" | "code-analysis";
   points: number;
   question: string;
   category?: string;
@@ -332,6 +333,7 @@ export interface Exam {
   title: string;
   description: string;
   subtitle?: string;
+  schemaVersion?: 2;
   durationMinutes: number;
   passingScore: number; // 50
   allowCppReference: boolean;

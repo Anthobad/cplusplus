@@ -37,7 +37,6 @@ interface RoadmapViewProps {
   onSelectExam: (examId: string) => void;
   onResetProgress: () => void;
   onNavigateReadiness?: () => void;
-  onNavigateMockInterview?: () => void;
   onNavigateInterviewPractice?: () => void;
 }
 
@@ -47,7 +46,6 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
   onSelectExam,
   onResetProgress,
   onNavigateReadiness,
-  onNavigateMockInterview,
   onNavigateInterviewPractice,
 }) => {
   const stats = calculateOverallProgress(progress);
@@ -209,12 +207,12 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
             </div>
           </div>
 
-          {/* Quick Access to Competency Matrix & Mock Interview Loop */}
+          {/* Readiness and coding interview tools */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/40 border border-slate-800 text-xs">
             <div className="flex items-center space-x-2 text-slate-300">
               <Sparkles className="h-4 w-4 text-purple-400 shrink-0" />
               <span>
-                Want to evaluate your interview strengths? Try our real-time competency matrix or practice in a live interview screen.
+                Want to evaluate your interview strengths? Try our real-time competency matrix or practice compiler-tested interview patterns.
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -234,16 +232,7 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                   <span>Interview Readiness</span>
                 </button>
               )}
-              {onNavigateMockInterview && (
-                <button
-                  type="button"
-                  onClick={onNavigateMockInterview}
-                  className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold shadow-md shadow-purple-500/20 transition-all"
-                >
-                  <Brain className="h-3.5 w-3.5" />
-                  <span>Mock Interview Loop</span>
-                </button>
-              )}
+
             </div>
           </div>
         </div>

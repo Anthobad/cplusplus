@@ -1,0 +1,10 @@
+{
+  "measuredAt": "2026-11-12T07:35:46.749Z",
+  "compiler": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+  "snapshotId": "snap_DidiHNszeeWO0Qym4Su1ARCXlvCZ",
+  "outputPrograms": 12,
+  "blankPrograms": 8,
+  "allCompiled": true,
+  "allOutputsMatched": true,
+  "cleanup": "stopped"
+}

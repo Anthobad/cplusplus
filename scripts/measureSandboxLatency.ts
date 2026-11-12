@@ -20,7 +20,7 @@ for (let index = 0; index < 3; index++) {
   const start = performance.now();
   const response = await evaluateSubmission({ challengeId: 'cc-t1',
     code: '#include <iostream>\nconsteval int answer(){return 42;}\nint main(){static_assert(answer()==42);std::cout<<"Hello, modern C++!";}',
-    mode: 'assessment', wasAssisted: false, requestAiFeedback: false,
+    mode: 'assessment', wasAssisted: false,
   }, runner);
   const record = { label, sample: index + 1, endToEndMs: performance.now() - start, timing,
     status: response.status, verified: response.result.verified, testsPassed: response.result.testsPassed,
