@@ -1,3 +1,4 @@
+import { CppEditor } from './CppEditor';
 import { authenticatedFetch } from "../lib/authenticatedFetch";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -284,13 +285,7 @@ export const CodeChallengeEditor: React.FC<CodeChallengeEditorProps> = ({
 
       {/* Interactive Code Editor Area */}
       <div className="relative">
-        <textarea
-          rows={12}
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          spellCheck={false}
-          className="w-full p-4 font-mono text-xs bg-slate-950 text-emerald-300 border-0 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y leading-relaxed"
-        />
+        <CppEditor key={challenge.id} documentId={challenge.id} value={code} onChange={setCode} />
 
         {/* Canonical Solution Overlay when revealed in Practice Mode */}
         {showSolution && mode === "practice" && (

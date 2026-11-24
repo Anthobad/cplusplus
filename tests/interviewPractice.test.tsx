@@ -35,7 +35,8 @@ describe('Optional interview practice', () => {
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('First element at least target');
     expect(html).toContain('Submission contract');
-    expect(html).toContain('firstAtLeast');
+    expect(html).toContain('Keyboard shortcuts');
+    expect(html).toContain('Word wrap');
     expect(html).toContain('does not change your 39-topic progress');
   });
 

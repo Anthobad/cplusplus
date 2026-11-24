@@ -280,3 +280,30 @@ Changed files for this correction:
 - `docs/deterministic-assessment-migration.md`
 
 No deployment was performed. Redeploy the backend/frontend together and refresh old browser tabs to receive the corrected registrations and starters. Continue running the complete compiler regression suite before release; build-time metadata checks alone do not prove arbitrary C++ behavior correct.
+
+## Shared C++ editor — 24 November 2026
+
+Practice challenges, optional interview exercises and exam coding answers now use the same CodeMirror 6 editor (`src/components/CppEditor.tsx`, configuration in `src/lib/cppEditor.ts`). It provides literal four-space Tab insertion, selection indentation/unindentation, automatic C++ function/class indentation, bracket pairing/matching, readable dark syntax colors, line numbers, whole-name occurrence highlighting, multiple selections/cursors, undo/redo, find and a word-wrap toggle enabled by default. Wrapping changes presentation only, not submitted text. Shortcut help expands inline so it remains usable on narrow screens.
+
+| Action | Shortcut |
+| --- | --- |
+| Insert four spaces / unindent | Tab / Shift+Tab |
+| Duplicate line up/down | Shift+Alt+Up/Down |
+| Move line up/down | Alt+Up/Down |
+| Add cursor above/below | Ctrl+Alt+Up/Down (Cmd+Alt on macOS) |
+| Add cursor at a position | Alt+click |
+| Select next matching occurrence | Ctrl/Cmd+D |
+| Select all matching occurrences | Ctrl/Cmd+Shift+L |
+| Toggle line comment | Ctrl/Cmd+/ |
+| Find / undo | Ctrl/Cmd+F / Ctrl/Cmd+Z |
+| Move keyboard focus outside the editor | Escape, then Tab |
+
+Bindings follow the [CodeMirror command keymap](https://codemirror.net/docs/ref/#commands.defaultKeymap). The focus escape follows its [accessible Tab handling](https://codemirror.net/examples/tab/).
+
+The controlled value remains plain C++ source. Exam read-only/frozen behavior and the 32,000-character limit are preserved. External value changes do not echo as learner edits. Each document ID gets fresh undo/selection state; ordinary rerenders retain the active view and cursors. Editor teardown destroys CodeMirror listeners and pending view work. Existing topic transitions, async evaluation guards, submission APIs, grading, saved progress and sandbox settings are unchanged. Output-prediction and short-blank answers retain their existing plain-text inputs.
+
+Added the CodeMirror state/view/commands/language/C++/search/autocomplete packages and explicit Lezer highlighting dependency; jsdom is test-only. All assets are local build outputs, with no CDN, AI call or new service. The editor is a deferred shared chunk: 457.27 kB raw / 150.37 kB gzip. Initial JS remains approximately 263.21 kB gzip; the existing Vite large-main-chunk warning remains.
+
+Verification: the full suite passed **386 tests across 27 files**. Eleven real-editor DOM tests cover four-space input, C++ indentation, duplicate-line shortcuts/undo, multi-selection editing, occurrence selection/highlighting, gutters/wrap, read-only/external updates, document lifecycle, input limits and focus escape. Editor tests were rerun after the final color/help styling adjustments and all eleven passed again. TypeScript, final production build, private-module/bundle-budget guards and `git diff --check` passed. jsdom geometry shims allow command/state testing; this is not a real-browser or physical-device layout verification. No deployment was performed.
+
+Files changed: `package.json`, `package-lock.json`, `src/components/CppEditor.tsx`, `src/lib/cppEditor.ts`, `src/components/CodeChallengeEditor.tsx`, `src/components/ExamView.tsx`, `tests/cppEditor.test.tsx`, `tests/lessonNavigation.test.tsx`, `tests/deterministicExamView.test.tsx`, `tests/interviewPractice.test.tsx`, and this report.

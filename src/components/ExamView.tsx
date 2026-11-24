@@ -1,3 +1,4 @@
+import { CppEditor } from './CppEditor';
 import { calculateReadiness } from '../lib/readinessAnalytics';
 import React, { useEffect, useRef, useState } from 'react';
 import type { Exam, ExamAttempt, ExamQuestionDetail, UserProgress } from '../types';
@@ -21,9 +22,11 @@ export function ExamQuestionInput({question,answer,onChange,disabled}:{question:
      <input type="radio" name={question.id} value={question.optionIds![i]} checked={answer===question.optionIds![i]} onChange={()=>onChange(question.optionIds![i])}/><span>{text}</span>
    </label>):question.type==='fill_blank'?<label className="block">Blank 1
      <input aria-label="Blank 1" maxLength={200} value={answer} onChange={e=>onChange(e.target.value)} autoComplete="off" spellCheck={false} className="block w-full mt-2 p-3 bg-slate-950 border border-slate-700 rounded font-mono"/>
-   </label>:<label className="block">{question.type==='coding'?'C++20 source':'Predicted output'}
+   </label>:question.type==='coding'?<div>
      {question.codingInstructions&&<p className="text-xs text-slate-400 my-2">{question.codingInstructions}</p>}
-     <textarea aria-label={question.type==='coding'?'C++20 source':'Predicted output'} spellCheck={false} maxLength={question.type==='coding'?32000:4000} rows={question.type==='coding'?16:5}
+     <CppEditor key={question.id} documentId={question.id} value={answer} onChange={onChange} disabled={disabled} maxLength={32000} />
+   </div>:<label className="block">Predicted output
+     <textarea aria-label="Predicted output" spellCheck={false} maxLength={4000} rows={5}
        value={answer} onChange={e=>onChange(e.target.value)} className="block w-full mt-2 p-3 bg-slate-950 border border-slate-700 rounded font-mono whitespace-pre"/>
    </label>}
  </fieldset>;

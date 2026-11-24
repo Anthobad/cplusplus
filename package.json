@@ -37,7 +37,15 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.4",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-cpp": "^6.0.3",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
     "@google-cloud/firestore": "^9.1.0",
+    "@lezer/highlight": "^1.2.5",
     "@tailwindcss/vite": "^4.1.14",
     "@vercel/sandbox": "^3.8.0",
     "@vitejs/plugin-react": "^5.0.4",
@@ -62,6 +70,7 @@
     "@types/react-test-renderer": "19.0.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "jsdom": "^31.0.1",
     "nock": "15.0.5",
     "react-test-renderer": "19.3.0",
     "tailwindcss": "^4.1.14",

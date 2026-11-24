@@ -18,6 +18,7 @@ describe('deterministic exam presentation',()=>{
      const html=renderToStaticMarkup(<ExamQuestionInput question={publicExam({...ACTIVE_EXAMS[0],questions:[q]}).questions[0]} answer="" onChange={()=>{}} disabled={false}/>);
      if(type==='mcq'){expect(html.match(/type="radio"/g)).toHaveLength(4);expect(html).not.toContain(q.correctAnswer+' selected');}
      else if(type==='fill_blank'){expect(html).toContain('aria-label="Blank 1"');expect(html).toContain('blank 1');}
+     else if(type==='coding')expect(html).toContain('Word wrap');
      else expect(html).toContain('<textarea');
      if(q.codeSnippet)expect(html).toContain('<pre');
    }

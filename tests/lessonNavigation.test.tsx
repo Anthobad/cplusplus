@@ -1,3 +1,4 @@
+import { CppEditor } from '../src/components/CppEditor';
 import React from 'react';
 import { act, create, type ReactTestRenderer, type ReactTestInstance } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,7 +34,7 @@ let renderer: ReactTestRenderer;
 const text = (node: ReactTestInstance): string => node.children.map(child => typeof child === 'string' ? child : text(child)).join('');
 const button = (label: string) => renderer.root.findAllByType('button').find(node => text(node).includes(label))!;
 const click = async (label: string) => { await act(async () => { await button(label).props.onClick(); }); };
-const editor = () => renderer.root.findByType('textarea');
+const editor = () => { const node = renderer.root.findByType(CppEditor); return { props: { value: node.props.value, onChange: (event: any) => node.props.onChange(event.target.value) } }; };
 function AssessmentProbe() {
   const state = useAssessment();
   return <output data-assessment={state.assessmentMode}>{state.assessmentTitle || ''}</output>;
