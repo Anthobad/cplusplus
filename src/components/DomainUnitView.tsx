@@ -24,12 +24,12 @@ export default function DomainUnitView({ unitId, ...props }: Props) {
   const ready = Boolean(unit && unit.id === getUnitById(unitId)?.id);
   return <>
     {ready && unit && <UnitView key={unit.id} {...props} unit={unit} />}
-    {!ready && <div className="p-8 text-slate-300 space-y-4">
+    {!ready && <div className="p-8 text-ink-slate-300 space-y-4">
     {failedId === unitId ? <>
       <p role="alert">This lesson could not be loaded. Check your connection and try again. If the problem persists after an update, reload the page.</p>
-      <button type="button" className="text-blue-300 underline mr-4" onClick={() => setRetry(value => value + 1)}>Retry lesson</button>
+      <button type="button" className="text-ink-blue-300 underline mr-4" onClick={() => setRetry(value => value + 1)}>Retry lesson</button>
     </> : <p role="status">Loading lesson…</p>}
-    <button type="button" className="text-blue-300 underline" onClick={props.onBackToRoadmap}>Curriculum Roadmap</button>
+    <button type="button" className="text-ink-blue-300 underline" onClick={props.onBackToRoadmap}>Curriculum Roadmap</button>
     </div>}
   </>;
 }

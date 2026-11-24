@@ -54,17 +54,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onNavigateHome}
             className="flex items-center space-x-2.5 text-left group"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 group-hover:border-blue-400 transition-colors">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600/20 text-ink-blue-400 border border-blue-500/30 group-hover:border-blue-400 transition-colors">
               <Terminal className="h-5 w-5" />
             </div>
             <div>
-              <span className="font-bold text-slate-100 text-sm sm:text-base tracking-tight flex items-center gap-1.5">
+              <span className="font-bold text-ink-slate-100 text-sm sm:text-base tracking-tight flex items-center gap-1.5">
                 C++ Systems Mastery
-                <span className="text-[10px] uppercase font-semibold tracking-wider bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/30 hidden xs:inline-block">
+                <span className="text-[10px] uppercase font-semibold tracking-wider bg-blue-500/20 text-ink-blue-400 px-1.5 py-0.5 rounded border border-blue-500/30 hidden xs:inline-block">
                   Job Ready
                 </span>
               </span>
-              <p className="text-xs text-slate-400 hidden md:block">
+              <p className="text-xs text-ink-slate-400 hidden md:block">
                 10-Phase Systems Engineering & Interview Roadmap
               </p>
             </div>
@@ -76,8 +76,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onNavigateHome}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
                 currentView === "roadmap" || currentView === "unit"
-                  ? "bg-slate-900 text-blue-400 border border-slate-800"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-slate-900 text-ink-blue-400 border border-slate-800"
+                  : "text-ink-slate-400 hover:text-ink-slate-200"
               }`}
             >
               <Map className="h-3.5 w-3.5" />
@@ -87,8 +87,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onNavigateReadiness}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
                 currentView === "readiness"
-                  ? "bg-slate-900 text-blue-400 border border-slate-800"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-slate-900 text-ink-blue-400 border border-slate-800"
+                  : "text-ink-slate-400 hover:text-ink-slate-200"
               }`}
             >
               <TrendingUp className="h-3.5 w-3.5" />
@@ -100,8 +100,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Center Assessment Status or Progress */}
         {isAssessmentActive ? (
-          <div className="flex items-center space-x-2 bg-purple-950/40 text-purple-300 px-3 py-1 rounded-full border border-purple-500/40 text-xs font-semibold animate-pulse">
-            <ShieldAlert className="h-3.5 w-3.5 text-purple-400" />
+          <div className="flex items-center space-x-2 bg-purple-950/40 text-ink-purple-300 px-3 py-1 rounded-full border border-purple-500/40 text-xs font-semibold animate-pulse">
+            <ShieldAlert className="h-3.5 w-3.5 text-ink-purple-400" />
             <span>
               {assessmentMode === "exam"
                 ? `EXAM: ${assessmentTitle || activeExamTitle || "Timed Examination"}`
@@ -114,8 +114,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         ) : (
           <div className="hidden xl:flex items-center space-x-3.5 bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-800 text-xs">
-            <div className="flex items-center space-x-1.5 text-slate-300">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            <div className="flex items-center space-x-1.5 text-ink-slate-300">
+              <CheckCircle2 className="h-4 w-4 text-ink-emerald-400" />
               <span>{stats.completedCount} / {stats.totalUnits} Units</span>
             </div>
             <div className="w-20 h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -124,7 +124,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 style={{ width: `${stats.percentage}%` }}
               />
             </div>
-            <span className="font-semibold text-blue-400">{stats.percentage}%</span>
+            <span className="font-semibold text-ink-blue-400">{stats.percentage}%</span>
           </div>
         )}
 
@@ -134,10 +134,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="open-cpp-docs-btn"
             onClick={onOpenDocs}
-            className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium text-slate-200 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-colors shadow-sm"
+            className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium text-ink-slate-200 hover:text-ink-strong bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-colors shadow-sm"
             title="Search C++ Standard Library reference (Containers, Smart Pointers, Algorithms, Concurrency)"
           >
-            <BookOpen className="h-4 w-4 text-blue-400" />
+            <BookOpen className="h-4 w-4 text-ink-blue-400" />
             <span className="hidden sm:inline">C++ Library</span>
           </button>
 
@@ -148,14 +148,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onOpenAuth}
               className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
                 isRegistered
-                  ? "bg-emerald-600/15 hover:bg-emerald-600/25 border-emerald-500/40 text-emerald-300"
-                  : "bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200 hover:text-white"
+                  ? "bg-emerald-600/15 hover:bg-emerald-600/25 border-emerald-500/40 text-ink-emerald-300"
+                  : "bg-slate-900 hover:bg-slate-800 border-slate-700 text-ink-slate-200 hover:text-ink-strong"
               }`}
               title={isRegistered ? `Signed in as ${currentUser?.email || currentUser?.displayName}. Click to manage profile.` : "Sign In or Sign Up"}
             >
               {isRegistered ? (
                 <>
-                  <div className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-[10px]">
+                  <div className="w-5 h-5 rounded-full bg-emerald-500 text-on-bright flex items-center justify-center font-bold text-[10px]">
                     {currentUser?.displayName?.[0] || currentUser?.email?.[0]?.toUpperCase() || "U"}
                   </div>
                   <span className="hidden md:inline font-mono truncate max-w-[120px]">
@@ -164,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </>
               ) : (
                 <>
-                  <LogIn className="h-4 w-4 text-blue-400" />
+                  <LogIn className="h-4 w-4 text-ink-blue-400" />
                   <span className="inline">Sign In</span>
                 </>
               )}
@@ -174,7 +174,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 id="nav-signout-quick-btn"
                 onClick={onSignOut}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-950/40 border border-slate-800 transition-colors"
+                className="p-1.5 rounded-xl text-ink-slate-400 hover:text-ink-red-400 hover:bg-red-950/40 border border-slate-800 transition-colors"
                 title="Sign Out of Account"
               >
                 <LogOut className="h-4 w-4" />

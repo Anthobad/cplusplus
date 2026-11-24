@@ -105,13 +105,13 @@ export const UnitView: React.FC<UnitViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
+    <div className="min-h-screen bg-slate-950 text-ink-slate-100 pb-20">
       {/* Unit Sub-Header Navigation */}
       <div className="border-b border-slate-800 bg-slate-900/60 sticky top-16 z-30 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <button
             onClick={onBackToRoadmap}
-            className="flex items-center space-x-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+            className="flex items-center space-x-1.5 text-xs font-semibold text-ink-slate-400 hover:text-ink-strong transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Curriculum Roadmap</span>
@@ -120,12 +120,12 @@ export const UnitView: React.FC<UnitViewProps> = ({
           <div className="flex items-center space-x-3">
             {/* Status pill */}
             {isCompleted ? (
-              <span className="flex items-center space-x-1 text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+              <span className="flex items-center space-x-1 text-xs font-semibold bg-emerald-500/10 text-ink-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 <span>Topic Completed</span>
               </span>
             ) : (
-              <span className="text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
+              <span className="text-xs text-ink-slate-400 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
                 In Progress
               </span>
             )}
@@ -135,8 +135,8 @@ export const UnitView: React.FC<UnitViewProps> = ({
               onClick={() => setIsQuizModalOpen(true)}
               className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                 quizResult?.passed
-                  ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30"
-                  : "bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
+                  ? "bg-emerald-600/20 text-ink-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30"
+                  : "bg-amber-500/20 text-ink-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
               }`}
             >
               <Award className="h-3.5 w-3.5" />
@@ -154,32 +154,32 @@ export const UnitView: React.FC<UnitViewProps> = ({
 
       {/* Main Unit Header */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4">
-        <div className="flex items-center space-x-2 text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">
+        <div className="flex items-center space-x-2 text-xs font-bold text-ink-blue-400 uppercase tracking-wider mb-2">
           <span>Topic {unit.weekNumber}</span>
           <span>•</span>
           <span>Domain {unit.phaseId.replace("phase-", "")}</span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-ink-strong tracking-tight">
           {unit.title}
         </h1>
-        <p className="text-sm text-slate-400 mt-1 max-w-3xl leading-relaxed">
+        <p className="text-sm text-ink-slate-400 mt-1 max-w-3xl leading-relaxed">
           {unit.subtitle}
         </p>
 
         {/* Goals & Topic Badges */}
         <div className="mt-4 p-4 rounded-xl bg-slate-900/50 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="text-xs">
-            <span className="text-slate-400 font-semibold uppercase tracking-wider block mb-1">
+            <span className="text-ink-slate-400 font-semibold uppercase tracking-wider block mb-1">
               Unit Objective:
             </span>
-            <p className="text-slate-200">{unit.goals}</p>
+            <p className="text-ink-slate-200">{unit.goals}</p>
           </div>
           <div className="flex flex-wrap gap-1.5 shrink-0">
             {unit.topics.slice(0, 4).map((t, idx) => (
               <span
                 key={idx}
-                className="text-[10px] font-mono bg-slate-800/80 text-slate-300 px-2 py-0.5 rounded border border-slate-700/60"
+                className="text-[10px] font-mono bg-slate-800/80 text-ink-slate-300 px-2 py-0.5 rounded border border-slate-700/60"
               >
                 {t}
               </span>
@@ -191,22 +191,22 @@ export const UnitView: React.FC<UnitViewProps> = ({
         {isGatedByExam && nextStep.requiredExam && (
           <div className="mt-4 p-4 rounded-2xl bg-amber-950/30 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
             <div className="flex items-start space-x-3">
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0 mt-0.5">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-ink-amber-400 border border-amber-500/30 shrink-0 mt-0.5">
                 <Shield className="h-5 w-5" />
               </div>
               <div>
-                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">
+                <span className="text-xs font-bold text-ink-amber-300 uppercase tracking-wider block">
                   Phase Milestone Checkpoint
                 </span>
-                <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-                  Completing this section unlocks <strong className="text-white">{nextStep.requiredExam.title}</strong>. Passing this examination (Score ≥ {nextStep.requiredExam.minScore}%) is required to unlock subsequent curriculum phases.
+                <p className="text-xs text-ink-slate-300 mt-0.5 leading-relaxed">
+                  Completing this section unlocks <strong className="text-ink-strong">{nextStep.requiredExam.title}</strong>. Passing this examination (Score ≥ {nextStep.requiredExam.minScore}%) is required to unlock subsequent curriculum phases.
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => onSelectExam(nextStep.requiredExam!.id)}
-              className="self-start sm:self-center px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 shrink-0 transition-colors"
+              className="self-start sm:self-center px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-ink-amber-300 border border-amber-500/40 shrink-0 transition-colors"
             >
               Preview Exam
             </button>
@@ -229,8 +229,8 @@ export const UnitView: React.FC<UnitViewProps> = ({
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center space-x-2 px-4 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors ${
                   isActive
-                    ? "border-blue-500 text-blue-400 bg-blue-500/5"
-                    : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                    ? "border-blue-500 text-ink-blue-400 bg-blue-500/5"
+                    : "border-transparent text-ink-slate-400 hover:text-ink-slate-200 hover:border-slate-700"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -248,10 +248,10 @@ export const UnitView: React.FC<UnitViewProps> = ({
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Overview */}
             <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-blue-400 mb-2">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-ink-blue-400 mb-2">
                 Conceptual Overview
               </h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <p className="text-sm text-ink-slate-300 leading-relaxed">
                 {unit.theory.overview}
               </p>
             </div>
@@ -262,8 +262,8 @@ export const UnitView: React.FC<UnitViewProps> = ({
                 key={idx}
                 className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4"
               >
-                <h3 className="text-base font-bold text-white">{sec.title}</h3>
-                <div className="text-xs sm:text-sm text-slate-300 whitespace-pre-line leading-relaxed">
+                <h3 className="text-base font-bold text-ink-strong">{sec.title}</h3>
+                <div className="text-xs sm:text-sm text-ink-slate-300 whitespace-pre-line leading-relaxed">
                   {sec.content}
                 </div>
 
@@ -272,10 +272,10 @@ export const UnitView: React.FC<UnitViewProps> = ({
                   <div
                     className={`p-4 rounded-xl border text-xs flex items-start space-x-2.5 ${
                       sec.callout.type === "memory"
-                        ? "bg-purple-950/20 border-purple-500/30 text-purple-200"
+                        ? "bg-purple-950/20 border-purple-500/30 text-ink-purple-200"
                         : sec.callout.type === "warning"
-                        ? "bg-red-950/20 border-red-500/30 text-red-200"
-                        : "bg-blue-950/20 border-blue-500/30 text-blue-200"
+                        ? "bg-red-950/20 border-red-500/30 text-ink-red-200"
+                        : "bg-blue-950/20 border-blue-500/30 text-ink-blue-200"
                     }`}
                   >
                     <Cpu className="h-4 w-4 shrink-0 mt-0.5" />
@@ -291,14 +291,14 @@ export const UnitView: React.FC<UnitViewProps> = ({
                 {/* Code Snippets */}
                 {sec.codeSnippets?.map((snip, sIdx) => (
                   <div key={sIdx} className="space-y-1.5 pt-2">
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
+                    <div className="flex items-center justify-between text-xs font-semibold text-ink-slate-400">
                       <span>{snip.title}</span>
-                      <span className="text-[10px] font-mono text-slate-500">C++ Syntax</span>
+                      <span className="text-[10px] font-mono text-ink-slate-500">C++ Syntax</span>
                     </div>
-                    <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300 overflow-x-auto leading-relaxed">
+                    <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-ink-emerald-300 overflow-x-auto leading-relaxed">
                       {snip.code}
                     </pre>
-                    <p className="text-xs text-slate-400 italic pl-1">{snip.explanation}</p>
+                    <p className="text-xs text-ink-slate-400 italic pl-1">{snip.explanation}</p>
                   </div>
                 ))}
               </div>
@@ -307,20 +307,20 @@ export const UnitView: React.FC<UnitViewProps> = ({
             {/* Code Examples */}
             {unit.codeExamples && unit.codeExamples.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Code2 className="h-5 w-5 text-emerald-400" />
+                <h3 className="text-base font-bold text-ink-strong flex items-center gap-2">
+                  <Code2 className="h-5 w-5 text-ink-emerald-400" />
                   <span>Interactive Code Examples</span>
                 </h3>
                 {unit.codeExamples.map(ex => (
                   <div key={ex.id} className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
-                    <h4 className="text-sm font-bold text-slate-200">{ex.title}</h4>
-                    <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-blue-300 overflow-x-auto leading-relaxed">
+                    <h4 className="text-sm font-bold text-ink-slate-200">{ex.title}</h4>
+                    <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-ink-blue-300 overflow-x-auto leading-relaxed">
                       {ex.code}
                     </pre>
-                    <p className="text-xs text-slate-300">{ex.explanation}</p>
+                    <p className="text-xs text-ink-slate-300">{ex.explanation}</p>
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800/60">
                       {ex.keyTakeaways.map((k, kIdx) => (
-                        <span key={kIdx} className="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded">
+                        <span key={kIdx} className="text-[11px] bg-slate-800 text-ink-slate-300 px-2 py-0.5 rounded">
                           ✓ {k}
                         </span>
                       ))}
@@ -336,16 +336,16 @@ export const UnitView: React.FC<UnitViewProps> = ({
         {activeTab === "deepdive" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
-              <div className="flex items-center space-x-2 text-xs font-bold text-purple-400 uppercase tracking-wider">
+              <div className="flex items-center space-x-2 text-xs font-bold text-ink-purple-400 uppercase tracking-wider">
                 <Cpu className="h-4 w-4" />
                 <span>Under the Hood Hardware Breakdown</span>
               </div>
-              <h3 className="text-xl font-bold text-white">{unit.deepDive.topic}</h3>
+              <h3 className="text-xl font-bold text-ink-strong">{unit.deepDive.topic}</h3>
 
               <ul className="space-y-2.5 pt-2">
                 {unit.deepDive.breakdown.map((item, idx) => (
-                  <li key={idx} className="text-xs sm:text-sm text-slate-300 flex items-start space-x-2 leading-relaxed font-mono bg-slate-950/40 p-3 rounded-xl border border-slate-800/80">
-                    <span className="text-purple-400 font-bold shrink-0">{idx + 1}.</span>
+                  <li key={idx} className="text-xs sm:text-sm text-ink-slate-300 flex items-start space-x-2 leading-relaxed font-mono bg-slate-950/40 p-3 rounded-xl border border-slate-800/80">
+                    <span className="text-ink-purple-400 font-bold shrink-0">{idx + 1}.</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -355,18 +355,18 @@ export const UnitView: React.FC<UnitViewProps> = ({
             {/* Top Interview Question Card */}
             <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-blue-500/30 space-y-4 shadow-xl">
               <div className="flex items-center space-x-2">
-                <Sparkles className="h-5 w-5 text-amber-400" />
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                <Sparkles className="h-5 w-5 text-ink-amber-400" />
+                <span className="text-xs font-bold text-ink-amber-400 uppercase tracking-wider">
                   Senior C++ Technical Interview Target Question
                 </span>
               </div>
 
-              <h4 className="text-base sm:text-lg font-bold text-white">
+              <h4 className="text-base sm:text-lg font-bold text-ink-strong">
                 "{unit.deepDive.interviewQuestion}"
               </h4>
 
-              <div className="p-4 rounded-xl bg-blue-950/20 border border-blue-500/20 text-xs sm:text-sm text-blue-200 leading-relaxed">
-                <span className="font-bold text-blue-300 block mb-1">Model Production Answer:</span>
+              <div className="p-4 rounded-xl bg-blue-950/20 border border-blue-500/20 text-xs sm:text-sm text-ink-blue-200 leading-relaxed">
+                <span className="font-bold text-ink-blue-300 block mb-1">Model Production Answer:</span>
                 {unit.deepDive.idealAnswer}
               </div>
             </div>
@@ -378,8 +378,8 @@ export const UnitView: React.FC<UnitViewProps> = ({
           <div className="space-y-8 animate-in fade-in duration-200">
             {/* True / False Section */}
             <div className="space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <HelpCircle className="h-4 w-4 text-blue-400" />
+              <h3 className="text-sm font-bold uppercase tracking-wider text-ink-slate-400 flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 text-ink-blue-400" />
                 <span>True or False Concept Check</span>
               </h3>
 
@@ -394,21 +394,21 @@ export const UnitView: React.FC<UnitViewProps> = ({
                       key={tf.id}
                       className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3"
                     >
-                      <p className="text-sm font-medium text-slate-200">{tf.statement}</p>
+                      <p className="text-sm font-medium text-ink-slate-200">{tf.statement}</p>
 
                       <div className="flex space-x-3">
                         {[true, false].map(val => {
                           const isSelected = selectedVal === val;
-                          let btnStyle = "bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700";
+                          let btnStyle = "bg-slate-950 border-slate-800 text-ink-slate-300 hover:border-slate-700";
 
                           if (answered) {
                             if (val === tf.isTrue) {
-                              btnStyle = "bg-emerald-950/40 border-emerald-500 text-emerald-300 font-bold";
+                              btnStyle = "bg-emerald-950/40 border-emerald-500 text-ink-emerald-300 font-bold";
                             } else if (isSelected && !isCorrect) {
-                              btnStyle = "bg-red-950/40 border-red-500 text-red-300 line-through";
+                              btnStyle = "bg-red-950/40 border-red-500 text-ink-red-300 line-through";
                             }
                           } else if (isSelected) {
-                            btnStyle = "bg-blue-600/20 border-blue-500 text-blue-200";
+                            btnStyle = "bg-blue-600/20 border-blue-500 text-ink-blue-200";
                           }
 
                           return (
@@ -427,8 +427,8 @@ export const UnitView: React.FC<UnitViewProps> = ({
                         <div
                           className={`p-3 rounded-xl text-xs ${
                             isCorrect
-                              ? "bg-emerald-950/20 text-emerald-300 border border-emerald-500/30"
-                              : "bg-red-950/20 text-red-300 border border-red-500/30"
+                              ? "bg-emerald-950/20 text-ink-emerald-300 border border-emerald-500/30"
+                              : "bg-red-950/20 text-ink-red-300 border border-red-500/30"
                           }`}
                         >
                           <span className="font-bold">{isCorrect ? "Correct! " : "Incorrect. "}</span>
@@ -443,8 +443,8 @@ export const UnitView: React.FC<UnitViewProps> = ({
 
             {/* Multiple Choice Section */}
             <div className="space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <HelpCircle className="h-4 w-4 text-emerald-400" />
+              <h3 className="text-sm font-bold uppercase tracking-wider text-ink-slate-400 flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 text-ink-emerald-400" />
                 <span>Multiple Choice Analysis</span>
               </h3>
 
@@ -459,21 +459,21 @@ export const UnitView: React.FC<UnitViewProps> = ({
                       key={mcq.id}
                       className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3"
                     >
-                      <p className="text-sm font-medium text-slate-200">{mcq.question}</p>
+                      <p className="text-sm font-medium text-ink-slate-200">{mcq.question}</p>
 
                       <div className="space-y-2">
                         {mcq.options.map((opt, optIdx) => {
                           const isSelected = selectedIdx === optIdx;
-                          let optStyle = "bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700";
+                          let optStyle = "bg-slate-950 border-slate-800 text-ink-slate-300 hover:border-slate-700";
 
                           if (answered) {
                             if (optIdx === mcq.correctAnswer) {
-                              optStyle = "bg-emerald-950/40 border-emerald-500 text-emerald-200 font-bold";
+                              optStyle = "bg-emerald-950/40 border-emerald-500 text-ink-emerald-200 font-bold";
                             } else if (isSelected && !isCorrect) {
-                              optStyle = "bg-red-950/40 border-red-500 text-red-200 line-through";
+                              optStyle = "bg-red-950/40 border-red-500 text-ink-red-200 line-through";
                             }
                           } else if (isSelected) {
-                            optStyle = "bg-blue-600/20 border-blue-500 text-blue-200";
+                            optStyle = "bg-blue-600/20 border-blue-500 text-ink-blue-200";
                           }
 
                           return (
@@ -484,7 +484,7 @@ export const UnitView: React.FC<UnitViewProps> = ({
                             >
                               <span>{opt}</span>
                               {answered && optIdx === mcq.correctAnswer && (
-                                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                                <CheckCircle2 className="h-4 w-4 text-ink-emerald-400 shrink-0" />
                               )}
                             </button>
                           );
@@ -495,8 +495,8 @@ export const UnitView: React.FC<UnitViewProps> = ({
                         <div
                           className={`p-3 rounded-xl text-xs ${
                             isCorrect
-                              ? "bg-emerald-950/20 text-emerald-300 border border-emerald-500/30"
-                              : "bg-red-950/20 text-red-300 border border-red-500/30"
+                              ? "bg-emerald-950/20 text-ink-emerald-300 border border-emerald-500/30"
+                              : "bg-red-950/20 text-ink-red-300 border border-red-500/30"
                           }`}
                         >
                           <span className="font-bold">{isCorrect ? "Correct! " : "Incorrect. "}</span>
@@ -512,8 +512,8 @@ export const UnitView: React.FC<UnitViewProps> = ({
             {/* Why This Works Section */}
             {unit.exercises.whyThisWorks && unit.exercises.whyThisWorks.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-amber-400" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-ink-amber-400 flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-ink-amber-400" />
                   <span>"Why This Code Works" Mechanical Analysis</span>
                 </h3>
 
@@ -525,29 +525,29 @@ export const UnitView: React.FC<UnitViewProps> = ({
                       key={wtw.id}
                       className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3"
                     >
-                      <h4 className="text-sm font-bold text-white">{wtw.title}</h4>
-                      <pre className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-blue-300 overflow-x-auto">
+                      <h4 className="text-sm font-bold text-ink-strong">{wtw.title}</h4>
+                      <pre className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-ink-blue-300 overflow-x-auto">
                         {wtw.code}
                       </pre>
-                      <p className="text-xs text-slate-300 font-medium">{wtw.question}</p>
+                      <p className="text-xs text-ink-slate-300 font-medium">{wtw.question}</p>
 
                       <button
                         onClick={() =>
                           setShowWtwExplanation(prev => ({ ...prev, [wtw.id]: !isOpen }))
                         }
-                        className="text-xs text-blue-400 hover:text-blue-300 font-semibold underline"
+                        className="text-xs text-ink-blue-400 hover:text-ink-blue-300 font-semibold underline"
                       >
                         {isOpen ? "Hide Step-by-Step Breakdown" : "Reveal Step-by-Step Execution"}
                       </button>
 
                       {isOpen && (
-                        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2 text-xs text-slate-300 animate-in fade-in">
+                        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2 text-xs text-ink-slate-300 animate-in fade-in">
                           <ol className="space-y-1.5 list-decimal pl-4">
                             {wtw.stepByStep.map((step, sIdx) => (
                               <li key={sIdx}>{step}</li>
                             ))}
                           </ol>
-                          <p className="pt-2 border-t border-slate-800 font-bold text-amber-400">
+                          <p className="pt-2 border-t border-slate-800 font-bold text-ink-amber-400">
                             Core Invariant: {wtw.coreConcept}
                           </p>
                         </div>
@@ -598,7 +598,7 @@ export const UnitView: React.FC<UnitViewProps> = ({
         )}
       </div>
 
-      {completionError && <p role="alert" className="p-4 text-red-300">{completionError}</p>}
+      {completionError && <p role="alert" className="p-4 text-ink-red-300">{completionError}</p>}
       {/* Bottom Step-by-Step Progression Bar */}
       <div className="fixed bottom-0 inset-x-0 z-30 bg-slate-950/90 border-t border-slate-800 backdrop-blur-md px-4 sm:px-8 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -606,13 +606,13 @@ export const UnitView: React.FC<UnitViewProps> = ({
             {prevUnit ? (
               <button
                 onClick={() => onSelectUnit(prevUnit.id)}
-                className="flex items-center space-x-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+                className="flex items-center space-x-1.5 text-xs text-ink-slate-400 hover:text-ink-strong transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Topic {prevUnit.weekNumber}: {prevUnit.title}</span>
               </button>
             ) : (
-              <span className="text-xs text-slate-600">First Topic</span>
+              <span className="text-xs text-ink-slate-600">First Topic</span>
             )}
           </div>
 

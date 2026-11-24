@@ -19,7 +19,7 @@ describe('readiness dashboard',()=> {
     expect(json).toContain('Completed');expect(json).toContain('Exam performance 0%');expect(json).toContain('Established');expect(json).toContain('Insufficient');
     // Find the review card by its rendered text without serializing React's owner graph.
     const buttons=renderer!.root.findAllByType('button');
-    const card=buttons.find(b=>b.findAllByProps({className:'text-[11px] text-amber-400 font-mono mt-0.5'}).length);
+    const card=buttons.find(b=>b.findAll(node=>node.type==='div' && node.children.some(child=>typeof child==='string' && child.includes('Exam performance 0%'))).length);
     expect(card).toBeDefined();await act(async()=>{card!.props.onClick();});expect(onSelectUnit).toHaveBeenCalledWith('topic-18');
     const empty={completedUnitIds:[],quizScores:{},examAttempts:{}} as unknown as UserProgress;
     await act(async()=>{renderer!.update(<ReadinessDashboard progress={empty} onSelectUnit={onSelectUnit}/>);});

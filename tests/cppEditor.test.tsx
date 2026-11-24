@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { EditorSelection } from '@codemirror/state';
 import { insertNewlineAndIndent, undo, copyLineDown, copyLineUp } from '@codemirror/commands';
+import { ThemeProvider, useTheme } from '../src/contexts/ThemeContext';
 import { CppEditor } from '../src/components/CppEditor';
 
 let host:HTMLDivElement,root:Root;
@@ -86,4 +87,25 @@ describe('shared C++ editor',()=>{
    const tab=new KeyboardEvent('keydown',{key:'Tab',keyCode:9,bubbles:true,cancelable:true});view().contentDOM.dispatchEvent(tab);
    expect(tab.defaultPrevented).toBe(false);expect(view().state.doc.toString()).toBe('code');
  });
+});
+
+it('changes editor appearance without losing code, selections, wrap or undo history', async () => {
+  localStorage.clear();
+  function Example() {
+    const { toggleTheme } = useTheme();
+    return <><button onClick={toggleTheme}>Theme</button><CppEditor value="int x;" onChange={() => {}} documentId="theme"/></>;
+  }
+  await act(async () => root.render(<ThemeProvider><Example/></ThemeProvider>));
+  const original = view();
+  await act(async () => original.dispatch({ changes: { from: 6, insert: ' // edit' }, selection: { anchor: 4, head: 5 }, userEvent: 'input' }));
+  const code = original.state.doc.toString();
+  await act(async () => (host.querySelector('input[type=checkbox]') as HTMLInputElement).click());
+  await act(async () => (host.querySelector('button') as HTMLButtonElement).click());
+  expect(view()).toBe(original); expect(original.state.facet(EditorView.darkTheme)).toBe(false);
+  expect(original.state.doc.toString()).toBe(code); expect(original.state.selection.main.from).toBe(4);
+  expect(original.contentDOM.classList.contains('cm-lineWrapping')).toBe(false);
+  await act(async () => { undo(original); }); expect(original.state.doc.toString()).toBe('int x;');
+  await act(async () => (host.querySelector('button') as HTMLButtonElement).click());
+  expect(original.state.facet(EditorView.darkTheme)).toBe(true);
+  localStorage.clear();
 });

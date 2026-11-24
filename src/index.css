@@ -1,9 +1,115 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: dark;
+@theme inline {
+  --color-switch-thumb: #fff;
+  --color-slate-750: #293548;
+  --color-ink-strong: var(--foreground-strong);
+  --color-on-bright: #020617;
+  --color-ink-amber-200: var(--foreground-amber-200);
+  --color-ink-amber-300: var(--foreground-amber-300);
+  --color-ink-amber-400: var(--foreground-amber-400);
+  --color-ink-blue-100: var(--foreground-blue-100);
+  --color-ink-blue-200: var(--foreground-blue-200);
+  --color-ink-blue-300: var(--foreground-blue-300);
+  --color-ink-blue-400: var(--foreground-blue-400);
+  --color-ink-emerald-200: var(--foreground-emerald-200);
+  --color-ink-emerald-300: var(--foreground-emerald-300);
+  --color-ink-emerald-400: var(--foreground-emerald-400);
+  --color-ink-indigo-400: var(--foreground-indigo-400);
+  --color-ink-purple-200: var(--foreground-purple-200);
+  --color-ink-purple-300: var(--foreground-purple-300);
+  --color-ink-purple-400: var(--foreground-purple-400);
+  --color-ink-red-200: var(--foreground-red-200);
+  --color-ink-red-300: var(--foreground-red-300);
+  --color-ink-red-400: var(--foreground-red-400);
+  --color-ink-slate-100: var(--foreground-slate-100);
+  --color-ink-slate-200: var(--foreground-slate-200);
+  --color-ink-slate-300: var(--foreground-slate-300);
+  --color-ink-slate-400: var(--foreground-slate-400);
+  --color-ink-slate-500: var(--foreground-slate-500);
+  --color-ink-slate-600: var(--foreground-slate-600);
 }
 
-input, textarea, select {
+:root {
   color-scheme: dark;
+  --foreground-strong: #fff;
+  --foreground-amber-200: var(--color-amber-200);
+  --foreground-amber-300: var(--color-amber-300);
+  --foreground-amber-400: var(--color-amber-400);
+  --foreground-blue-100: var(--color-blue-100);
+  --foreground-blue-200: var(--color-blue-200);
+  --foreground-blue-300: var(--color-blue-300);
+  --foreground-blue-400: var(--color-blue-400);
+  --foreground-emerald-200: var(--color-emerald-200);
+  --foreground-emerald-300: var(--color-emerald-300);
+  --foreground-emerald-400: var(--color-emerald-400);
+  --foreground-indigo-400: var(--color-indigo-400);
+  --foreground-purple-200: var(--color-purple-200);
+  --foreground-purple-300: var(--color-purple-300);
+  --foreground-purple-400: var(--color-purple-400);
+  --foreground-red-200: var(--color-red-200);
+  --foreground-red-300: var(--color-red-300);
+  --foreground-red-400: var(--color-red-400);
+  --foreground-slate-100: var(--color-slate-100);
+  --foreground-slate-200: var(--color-slate-200);
+  --foreground-slate-300: var(--color-slate-300);
+  --foreground-slate-400: var(--color-slate-400);
+  --foreground-slate-500: var(--color-slate-500);
+  --foreground-slate-600: var(--color-slate-600);
+  --editor-active: #172033;
+  --editor-selection: #1e3a5f;
+  --editor-match: #164e63;
+  --editor-search: #854d0e;
+  --overlay: rgb(2 6 23 / 80%);
 }
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --foreground-strong: #0f172a;
+  --color-slate-950: #fff;
+  --color-slate-900: #f8fafc;
+  --color-slate-800: #f1f5f9;
+  --color-slate-750: #e9eff5;
+  --color-slate-700: #e2e8f0;
+  --color-slate-600: #cbd5e1;
+  --foreground-amber-200: var(--color-amber-800);
+  --foreground-amber-300: var(--color-amber-700);
+  --foreground-amber-400: var(--color-amber-700);
+  --foreground-blue-100: var(--color-blue-800);
+  --foreground-blue-200: var(--color-blue-800);
+  --foreground-blue-300: var(--color-blue-700);
+  --foreground-blue-400: var(--color-blue-700);
+  --foreground-emerald-200: var(--color-emerald-800);
+  --foreground-emerald-300: var(--color-emerald-700);
+  --foreground-emerald-400: var(--color-emerald-700);
+  --foreground-indigo-400: var(--color-indigo-700);
+  --foreground-purple-200: var(--color-purple-800);
+  --foreground-purple-300: var(--color-purple-700);
+  --foreground-purple-400: var(--color-purple-700);
+  --foreground-red-200: var(--color-red-800);
+  --foreground-red-300: var(--color-red-700);
+  --foreground-red-400: var(--color-red-700);
+  --foreground-slate-100: #0f172a;
+  --foreground-slate-200: #1e293b;
+  --foreground-slate-300: #334155;
+  --foreground-slate-400: #475569;
+  --foreground-slate-500: #64748b;
+  --foreground-slate-600: #64748b;
+  --color-blue-950: var(--color-blue-100);
+  --color-emerald-950: var(--color-emerald-100);
+  --color-red-950: var(--color-red-100);
+  --color-purple-950: var(--color-purple-100);
+  --color-amber-950: var(--color-amber-100);
+  --editor-active: #eaf0f8;
+  --editor-selection: #bfdbfe;
+  --editor-match: #cffafe;
+  --editor-search: #fde68a;
+  --overlay: rgb(15 23 42 / 45%);
+}
+
+html, body { background: var(--color-slate-950); color: var(--foreground-slate-100); }
+input, textarea, select { color-scheme: inherit; }
+* { scrollbar-color: var(--foreground-slate-500) var(--color-slate-900); }
+::selection { background: #2563eb; color: white; }
+/* Overlays intentionally dim the page in either theme; their dialogs use themed surfaces. */
+@utility bg-overlay { background-color: var(--overlay); }

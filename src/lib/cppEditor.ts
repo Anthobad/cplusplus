@@ -8,14 +8,14 @@ import { highlightSelectionMatches, searchKeymap, selectNextOccurrence, selectSe
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 
 const cppHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: '#c084fc' },
-  { tag: [tags.typeName, tags.className], color: '#67e8f9' },
-  { tag: tags.string, color: '#86efac' },
-  { tag: [tags.number, tags.bool], color: '#fbbf24' },
-  { tag: tags.comment, color: '#94a3b8' },
-  { tag: tags.function(tags.variableName), color: '#93c5fd' },
-  { tag: tags.operator, color: '#cbd5e1' },
-  { tag: tags.invalid, color: '#f87171' },
+  { tag: tags.keyword, color: 'var(--foreground-purple-300)' },
+  { tag: [tags.typeName, tags.className], color: 'var(--foreground-blue-300)' },
+  { tag: tags.string, color: 'var(--foreground-emerald-300)' },
+  { tag: [tags.number, tags.bool], color: 'var(--foreground-amber-300)' },
+  { tag: tags.comment, color: 'var(--foreground-slate-400)' },
+  { tag: tags.function(tags.variableName), color: 'var(--foreground-blue-300)' },
+  { tag: tags.operator, color: 'var(--foreground-slate-300)' },
+  { tag: tags.invalid, color: 'var(--foreground-red-300)' },
 ]);
 export const externalEditorUpdate = Annotation.define<boolean>();
 // Insert literal spaces at every cursor; indent whole selections with Tab, unindent with Shift-Tab.
@@ -43,19 +43,22 @@ export function cppEditorExtensions(): Extension[] {
     syntaxHighlighting(cppHighlightStyle),
     highlightSelectionMatches({ highlightWordAroundCursor: true, wholeWords: true, maxMatches: 10000 }),
     keymap.of(cppEditorKeymap),
-    EditorView.theme({
-      '&': { height: '100%', backgroundColor: '#020617', color: '#e2e8f0', fontSize: '13px' },
-      '.cm-scroller': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', overflow: 'auto', lineHeight: '1.7' },
-      '.cm-content': { padding: '12px 0', caretColor: '#93c5fd' },
-      '.cm-line': { padding: '0 12px' },
-      '.cm-gutters': { backgroundColor: '#0f172a', color: '#64748b', borderColor: '#1e293b' },
-      '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: '#172033' },
-      '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { backgroundColor: '#1e3a5f' },
-      '.cm-cursor, .cm-dropCursor': { borderLeftColor: '#93c5fd' },
-      '.cm-selectionMatch, .cm-selectionMatch-main': { backgroundColor: '#164e63', outline: '1px solid #22d3ee80' },
-      '.cm-searchMatch': { backgroundColor: '#854d0e' },
-      '.cm-panels': { backgroundColor: '#0f172a', color: '#e2e8f0' },
-      '&.cm-focused': { outline: '1px solid #3b82f6' },
-    }, { dark: true }),
   ];
+}
+
+export function cppEditorAppearance(dark: boolean): Extension {
+  return EditorView.theme({
+      '&': { height: '100%', backgroundColor: 'var(--color-slate-950)', color: 'var(--foreground-slate-200)', fontSize: '13px' },
+      '.cm-scroller': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', overflow: 'auto', lineHeight: '1.7' },
+      '.cm-content': { padding: '12px 0', caretColor: 'var(--foreground-blue-300)' },
+      '.cm-line': { padding: '0 12px' },
+      '.cm-gutters': { backgroundColor: 'var(--color-slate-900)', color: 'var(--foreground-slate-500)', borderColor: 'var(--color-slate-700)' },
+      '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'var(--editor-active)' },
+      '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { backgroundColor: 'var(--editor-selection)' },
+      '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--foreground-blue-300)' },
+      '.cm-selectionMatch, .cm-selectionMatch-main': { backgroundColor: 'var(--editor-match)', outline: '1px solid #22d3ee80' },
+      '.cm-searchMatch': { backgroundColor: 'var(--editor-search)' },
+      '.cm-panels': { backgroundColor: 'var(--color-slate-900)', color: 'var(--foreground-slate-200)' },
+      '&.cm-focused': { outline: '1px solid #3b82f6' },
+    }, { dark });
 }

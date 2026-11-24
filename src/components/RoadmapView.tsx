@@ -64,21 +64,21 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-24">
+    <div className="min-h-screen bg-slate-950 text-ink-slate-100 pb-24">
       {/* Top Hero & Personalized Progress Tracker Dashboard */}
       <section className="border-b border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 pt-10 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto space-y-8">
           {/* Headline & Welcome */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-3">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-ink-blue-400 text-xs font-semibold uppercase tracking-wider mb-3">
                 <Sparkles className="h-3.5 w-3.5" />
                 <span>Zero to Job-Ready Production Curriculum</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              <h1 className="text-3xl sm:text-4xl font-black text-ink-strong tracking-tight">
                 C++ Systems Engineering Roadmap
               </h1>
-              <p className="text-sm sm:text-base text-slate-400 mt-2 max-w-2xl leading-relaxed">
+              <p className="text-sm sm:text-base text-ink-slate-400 mt-2 max-w-2xl leading-relaxed">
                 Step-by-step 4-domain systems engineering & interview curriculum: from pointer arithmetic and memory layout to smart pointers, STL internals, lock-free concurrency, and senior technical interview readiness.
               </p>
             </div>
@@ -88,11 +88,11 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
               <div className="shrink-0 bg-slate-900/90 border border-blue-500/40 p-4 rounded-2xl shadow-xl flex flex-col gap-2 max-w-xs">
                 {currentActiveUnitLock.isLocked && currentActiveUnitLock.reason === "milestone_exam" && currentActiveUnitLock.requiredExam ? (
                   <>
-                    <span className="text-[11px] uppercase font-bold text-amber-400 tracking-wider flex items-center gap-1.5">
+                    <span className="text-[11px] uppercase font-bold text-ink-amber-400 tracking-wider flex items-center gap-1.5">
                       <Shield className="h-3 w-3" />
                       <span>Milestone Exam Required:</span>
                     </span>
-                    <div className="font-semibold text-sm text-slate-100 line-clamp-1">
+                    <div className="font-semibold text-sm text-ink-slate-100 line-clamp-1">
                       {currentActiveUnitLock.requiredExam.title}
                     </div>
                     <button
@@ -105,10 +105,10 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                   </>
                 ) : (
                   <>
-                    <span className="text-[11px] uppercase font-bold text-blue-400 tracking-wider">
+                    <span className="text-[11px] uppercase font-bold text-ink-blue-400 tracking-wider">
                       Current Next Step:
                     </span>
-                    <div className="font-semibold text-sm text-slate-100 line-clamp-1">
+                    <div className="font-semibold text-sm text-ink-slate-100 line-clamp-1">
                       Topic {currentActiveUnit.weekNumber}: {currentActiveUnit.title}
                     </div>
                     <button
@@ -128,7 +128,7 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* Metric 1: Overall Progress */}
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+              <div className="flex items-center justify-between text-ink-slate-400 text-xs font-medium">
                 <span>Curriculum Progress</span>
                 <div className="flex items-center space-x-2">
                   {(stats.completedCount > 0 || stats.quizzesPassed > 0 || stats.examsPassed > 0) && (
@@ -136,25 +136,25 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                       id="hero-reset-progress-btn"
                       type="button"
                       onClick={onResetProgress}
-                      className="text-[10px] text-slate-500 hover:text-red-400 inline-flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-800"
+                      className="text-[10px] text-ink-slate-500 hover:text-ink-red-400 inline-flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-800"
                       title="Reset learning progress back to Topic 1"
                     >
                       <RotateCcw className="h-2.5 w-2.5" />
                       <span>Reset</span>
                     </button>
                   )}
-                  <TrendingUp className="h-4 w-4 text-blue-400" />
+                  <TrendingUp className="h-4 w-4 text-ink-blue-400" />
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-black text-white font-mono">{stats.percentage}%</div>
+                <div className="text-2xl font-black text-ink-strong font-mono">{stats.percentage}%</div>
                 <div className="w-full h-1.5 bg-slate-800 rounded-full mt-2 overflow-hidden">
                   <div
                     className="h-full bg-blue-500 rounded-full transition-all duration-500"
                     style={{ width: `${stats.percentage}%` }}
                   />
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1">
+                <div className="text-[11px] text-ink-slate-400 mt-1">
                   {stats.completedCount} of {stats.totalUnits} Units Completed
                 </div>
               </div>
@@ -162,15 +162,15 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
 
             {/* Metric 2: Section Quizzes */}
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+              <div className="flex items-center justify-between text-ink-slate-400 text-xs font-medium">
                 <span>Section Quizzes Passed</span>
-                <Award className="h-4 w-4 text-emerald-400" />
+                <Award className="h-4 w-4 text-ink-emerald-400" />
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-black text-emerald-400 font-mono">
+                <div className="text-2xl font-black text-ink-emerald-400 font-mono">
                   {stats.quizzesPassed} / {stats.totalUnits}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-2">
+                <p className="text-[11px] text-ink-slate-400 mt-2">
                   Repeatable section assessments
                 </p>
               </div>
@@ -178,15 +178,15 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
 
             {/* Metric 3: Milestone Exams */}
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+              <div className="flex items-center justify-between text-ink-slate-400 text-xs font-medium">
                 <span>Milestone Exams Passed</span>
-                <Shield className="h-4 w-4 text-amber-400" />
+                <Shield className="h-4 w-4 text-ink-amber-400" />
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-black text-amber-400 font-mono">
+                <div className="text-2xl font-black text-ink-amber-400 font-mono">
                   {stats.examsPassed} / {CURRICULUM_EXAMS.length}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-2">
+                <p className="text-[11px] text-ink-slate-400 mt-2">
                   Timed & Browser-locked (50/100 to pass)
                 </p>
               </div>
@@ -194,13 +194,13 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
 
             {/* Metric 4: Academic Integrity & Cloud Storage */}
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm flex flex-col justify-between">
-              <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
+              <div className="flex items-center justify-between text-ink-slate-400 text-xs font-medium">
                 <span>Firebase Sync</span>
-                <CheckCircle2 className="h-4 w-4 text-blue-400" />
+                <CheckCircle2 className="h-4 w-4 text-ink-blue-400" />
               </div>
               <div className="mt-3">
-                <div className="text-xs font-semibold text-slate-200">Real-time Cloud Sync</div>
-                <p className="text-[11px] text-slate-400 mt-1">
+                <div className="text-xs font-semibold text-ink-slate-200">Real-time Cloud Sync</div>
+                <p className="text-[11px] text-ink-slate-400 mt-1">
                   Progress, exam logs, and quiz results securely stored in Firestore.
                 </p>
               </div>
@@ -209,8 +209,8 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
 
           {/* Readiness and coding interview tools */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/40 border border-slate-800 text-xs">
-            <div className="flex items-center space-x-2 text-slate-300">
-              <Sparkles className="h-4 w-4 text-purple-400 shrink-0" />
+            <div className="flex items-center space-x-2 text-ink-slate-300">
+              <Sparkles className="h-4 w-4 text-ink-purple-400 shrink-0" />
               <span>
                 Want to evaluate your interview strengths? Try our real-time competency matrix or practice compiler-tested interview patterns.
               </span>
@@ -226,9 +226,9 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateReadiness}
-                  className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold transition-colors"
+                  className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-ink-strong font-semibold transition-colors"
                 >
-                  <TrendingUp className="h-3.5 w-3.5 text-blue-400" />
+                  <TrendingUp className="h-3.5 w-3.5 text-ink-blue-400" />
                   <span>Interview Readiness</span>
                 </button>
               )}
@@ -250,32 +250,32 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
               {/* Phase Header Card */}
               <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-blue-400">
+                  <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-ink-blue-400">
                     <span>{phase.calendarMonth}</span>
                     <span>•</span>
                     <span>{phase.weeksRange}</span>
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white mt-1">
+                  <h2 className="text-xl sm:text-2xl font-bold text-ink-strong mt-1">
                     {phase.title}
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-3xl leading-relaxed">
+                  <p className="text-xs sm:text-sm text-ink-slate-400 mt-1 max-w-3xl leading-relaxed">
                     {phase.description}
                   </p>
                 </div>
 
-                <div className="text-xs font-semibold text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 self-start sm:self-center">
+                <div className="text-xs font-semibold text-ink-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 self-start sm:self-center">
                   {phase.weeks.length} Units
                 </div>
               </div>
 
               {/* Gated Phase Banner when required Milestone Exam is not passed */}
               {isPhaseGatedByExam && (
-                <div className="flex items-center justify-between bg-red-950/30 border border-red-500/30 text-red-200 px-4 py-3 rounded-xl text-xs gap-3">
+                <div className="flex items-center justify-between bg-red-950/30 border border-red-500/30 text-ink-red-200 px-4 py-3 rounded-xl text-xs gap-3">
                   <div className="flex items-center space-x-2.5">
-                    <Lock className="h-4 w-4 shrink-0 text-red-400" />
+                    <Lock className="h-4 w-4 shrink-0 text-ink-red-400" />
                     <span>
-                      <strong className="font-semibold text-red-300">Phase Locked:</strong> You must score at least 50/100 on{" "}
-                      <span className="font-medium text-white">{phaseGatingExam.title}</span> to unlock these units.
+                      <strong className="font-semibold text-ink-red-300">Phase Locked:</strong> You must score at least 50/100 on{" "}
+                      <span className="font-medium text-ink-strong">{phaseGatingExam.title}</span> to unlock these units.
                     </span>
                   </div>
                   <button
@@ -313,34 +313,34 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                         {/* Week Status Header */}
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
-                            <span className="text-xs font-mono font-bold text-blue-400">
+                            <span className="text-xs font-mono font-bold text-ink-blue-400">
                               Topic {unit.weekNumber}
                             </span>
                             {completed && (
-                              <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.2 rounded-full">
+                              <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-ink-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.2 rounded-full">
                                 <CheckCircle2 className="h-3 w-3" />
                                 <span>Completed</span>
                               </span>
                             )}
                             {isCurrent && (
-                              <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.2 rounded-full">
+                              <span className="text-[10px] font-bold text-ink-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.2 rounded-full">
                                 Up Next
                               </span>
                             )}
                           </div>
 
                           {!unlocked && (
-                            <div className="flex items-center space-x-1 text-[11px] text-slate-500">
+                            <div className="flex items-center space-x-1 text-[11px] text-ink-slate-500">
                               <Lock className="h-3 w-3" />
                               <span>{lockReason.reason === "milestone_exam" ? "Exam Gated" : "Step-by-step lock"}</span>
                             </div>
                           )}
                         </div>
 
-                        <h3 className="text-base font-bold text-white leading-snug">
+                        <h3 className="text-base font-bold text-ink-strong leading-snug">
                           {unit.title}
                         </h3>
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-ink-slate-400 mt-1 line-clamp-2 leading-relaxed">
                           {unit.subtitle}
                         </p>
 
@@ -349,7 +349,7 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                           {unit.topics.slice(0, 3).map((t, idx) => (
                             <span
                               key={idx}
-                              className="text-[10px] font-mono bg-slate-950 text-slate-400 px-2 py-0.5 rounded border border-slate-800"
+                              className="text-[10px] font-mono bg-slate-950 text-ink-slate-400 px-2 py-0.5 rounded border border-slate-800"
                             >
                               {t}
                             </span>
@@ -359,11 +359,11 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
 
                       {/* Action Button & Quiz score */}
                       <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-[11px] text-ink-slate-400">
                           {quiz?.passed ? (
-                            <span className="text-emerald-400 font-semibold">Quiz: {quiz.score}%</span>
+                            <span className="text-ink-emerald-400 font-semibold">Quiz: {quiz.score}%</span>
                           ) : quiz ? (
-                            <span className="text-amber-400 font-semibold">Quiz retry needed ({quiz.score}%)</span>
+                            <span className="text-ink-amber-400 font-semibold">Quiz retry needed ({quiz.score}%)</span>
                           ) : (
                             <span>Section quiz pending</span>
                           )}
@@ -374,10 +374,10 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                             onClick={() => onSelectUnit(unit.id)}
                             className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                               completed
-                                ? "bg-slate-800 hover:bg-slate-700 text-slate-200"
+                                ? "bg-slate-800 hover:bg-slate-700 text-ink-slate-200"
                                 : isCurrent
                                 ? "bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-500/20"
-                                : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+                                : "bg-slate-800 hover:bg-slate-700 text-ink-slate-200"
                             }`}
                           >
                             <span>{completed ? "Review" : "Start Topic"}</span>
@@ -386,14 +386,14 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                         ) : lockReason.reason === "milestone_exam" && lockReason.requiredExam ? (
                           <button
                             onClick={() => onSelectExam(lockReason.requiredExam!.id)}
-                            className="flex items-center space-x-1.5 text-xs text-red-400 hover:text-red-300 font-semibold transition-colors"
+                            className="flex items-center space-x-1.5 text-xs text-ink-red-400 hover:text-ink-red-300 font-semibold transition-colors"
                             title={`Score at least 50/100 on ${lockReason.requiredExam.title} to unlock this unit.`}
                           >
-                            <Lock className="h-3.5 w-3.5 text-red-400" />
+                            <Lock className="h-3.5 w-3.5 text-ink-red-400" />
                             <span>Pass Exam to Unlock</span>
                           </button>
                         ) : (
-                          <div className="flex items-center space-x-1.5 text-xs text-slate-600 cursor-not-allowed">
+                          <div className="flex items-center space-x-1.5 text-xs text-ink-slate-600 cursor-not-allowed">
                             <Lock className="h-3.5 w-3.5" />
                             <span>Complete Topic {lockReason.requiredUnit?.weekNumber || (unit.weekNumber - 1)} to Unlock</span>
                           </div>
@@ -430,22 +430,22 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                         <div 
                           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${
                             isPassed
-                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                              ? "bg-emerald-500/20 text-ink-emerald-400 border-emerald-500/30"
                               : hasFailedAttempt
-                              ? "bg-red-500/20 text-red-400 border-red-500/30"
+                              ? "bg-red-500/20 text-ink-red-400 border-red-500/30"
                               : isExamUnlocked
-                              ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                              : "bg-slate-800/80 text-slate-400 border-slate-700/60"
+                              ? "bg-blue-500/20 text-ink-blue-400 border-blue-500/30"
+                              : "bg-slate-800/80 text-ink-slate-400 border-slate-700/60"
                           }`}
                         >
                           {isPassed ? (
-                            <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                            <CheckCircle2 className="h-6 w-6 text-ink-emerald-400" />
                           ) : hasFailedAttempt ? (
-                            <XCircle className="h-6 w-6 text-red-400" />
+                            <XCircle className="h-6 w-6 text-ink-red-400" />
                           ) : isExamUnlocked ? (
                             <Shield className="h-6 w-6" />
                           ) : (
-                            <Lock className="h-5 w-5 text-slate-400" />
+                            <Lock className="h-5 w-5 text-ink-slate-400" />
                           )}
                         </div>
                         <div className="space-y-1">
@@ -453,12 +453,12 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                             <span 
                               className={`text-xs font-bold uppercase tracking-wider ${
                                 isPassed
-                                  ? "text-emerald-400"
+                                  ? "text-ink-emerald-400"
                                   : hasFailedAttempt
-                                  ? "text-red-400"
+                                  ? "text-ink-red-400"
                                   : isExamUnlocked
-                                  ? "text-blue-400"
-                                  : "text-slate-400"
+                                  ? "text-ink-blue-400"
+                                  : "text-ink-slate-400"
                               }`}
                             >
                               {isPassed
@@ -469,47 +469,47 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                                 ? "Proctored Milestone Examination"
                                 : "Locked Milestone Examination"}
                             </span>
-                            <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono border border-slate-700">
+                            <span className="text-[10px] bg-slate-800 text-ink-slate-300 px-2 py-0.5 rounded font-mono border border-slate-700">
                               {examAfterThisPhase.durationMinutes} Mins
                             </span>
                             {isPassed ? (
-                              <span className="text-[10px] bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded font-medium border border-emerald-500/30 flex items-center gap-1">
+                              <span className="text-[10px] bg-emerald-500/15 text-ink-emerald-300 px-2 py-0.5 rounded font-medium border border-emerald-500/30 flex items-center gap-1">
                                 <CheckCircle2 className="h-2.5 w-2.5" />
                                 <span>Passed ({examAttempt.score}/100)</span>
                               </span>
                             ) : hasFailedAttempt ? (
-                              <span className="text-[10px] bg-red-500/15 text-red-300 px-2 py-0.5 rounded font-medium border border-red-500/30 flex items-center gap-1">
+                              <span className="text-[10px] bg-red-500/15 text-ink-red-300 px-2 py-0.5 rounded font-medium border border-red-500/30 flex items-center gap-1">
                                 <XCircle className="h-2.5 w-2.5" />
                                 <span>Failed ({examAttempt.score}/100 - Score ≥ 50 Required)</span>
                               </span>
                             ) : !isExamUnlocked ? (
-                              <span className="text-[10px] bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded font-medium border border-amber-500/30 flex items-center gap-1">
+                              <span className="text-[10px] bg-amber-500/15 text-ink-amber-300 px-2 py-0.5 rounded font-medium border border-amber-500/30 flex items-center gap-1">
                                 <Lock className="h-2.5 w-2.5" />
                                 <span>{examStatus.completedCount} / {examStatus.totalRequired} Units Completed</span>
                               </span>
                             ) : (
-                              <span className="text-[10px] bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded font-medium border border-emerald-500/30 flex items-center gap-1">
+                              <span className="text-[10px] bg-emerald-500/15 text-ink-emerald-300 px-2 py-0.5 rounded font-medium border border-emerald-500/30 flex items-center gap-1">
                                 <CheckCircle2 className="h-2.5 w-2.5" />
                                 <span>Prerequisites Satisfied</span>
                               </span>
                             )}
                           </div>
 
-                          <h3 className="text-base sm:text-lg font-bold text-white mt-0.5">
+                          <h3 className="text-base sm:text-lg font-bold text-ink-strong mt-0.5">
                             {examAfterThisPhase.title}
                           </h3>
-                          <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+                          <p className="text-xs text-ink-slate-400 max-w-2xl leading-relaxed">
                             {examAfterThisPhase.description}
                           </p>
 
                           {/* Prerequisites explanation bar when locked */}
                           {!isExamUnlocked && (
                             <div className="pt-2">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1 text-slate-400 mb-1.5">
-                                <span className="text-amber-400/90 font-medium">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1 text-ink-slate-400 mb-1.5">
+                                <span className="text-ink-amber-400/90 font-medium">
                                   Required: Complete all {examStatus.totalRequired} prerequisite units ({examAfterThisPhase.coversPhases.length === 1 ? `Phase ${examAfterThisPhase.coversPhases[0]}` : `Phases ${examAfterThisPhase.coversPhases.join(', ')}`})
                                 </span>
-                                <span className="font-mono text-[11px] text-slate-400">
+                                <span className="font-mono text-[11px] text-ink-slate-400">
                                   {Math.round((examStatus.completedCount / examStatus.totalRequired) * 100)}% Ready
                                 </span>
                               </div>
@@ -522,15 +522,15 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                             </div>
                           )}
 
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-1">
-                            <span className="text-indigo-400 font-medium flex items-center gap-1">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-slate-400 pt-1">
+                            <span className="text-ink-indigo-400 font-medium flex items-center gap-1">
                               <span className="h-1.5 w-1.5 rounded-full bg-indigo-400"></span>
                               Randomized Question Pool
                             </span>
                             <span>•</span>
                             <span>100 Points Total</span>
                             <span>•</span>
-                            <span className="text-amber-400 font-semibold">50 / 100 to pass</span>
+                            <span className="text-ink-amber-400 font-semibold">50 / 100 to pass</span>
                             <span>•</span>
                             <span>Browser Lock Enabled</span>
                             <span>•</span>
@@ -547,7 +547,7 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                         {isExamUnlocked ? (
                           isPassed ? (
                             <div className="text-right">
-                              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1 justify-end">
+                              <div className="text-xs font-bold text-ink-emerald-400 flex items-center gap-1 justify-end">
                                 <CheckCircle2 className="h-4 w-4" />
                                 <span>Passed ({examAttempt.score}/100)</span>
                               </div>
@@ -555,18 +555,18 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                                 id={`retake-exam-${examAfterThisPhase.id}-btn`}
                                 type="button"
                                 onClick={() => onSelectExam(examAfterThisPhase.id)}
-                                className="mt-1 text-[11px] text-slate-400 hover:text-white underline"
+                                className="mt-1 text-[11px] text-ink-slate-400 hover:text-ink-strong underline"
                               >
                                 Retake Exam
                               </button>
                             </div>
                           ) : hasFailedAttempt ? (
                             <div className="flex flex-col items-start lg:items-end gap-1.5">
-                              <div className="text-xs font-bold text-red-400 flex items-center gap-1 justify-end">
+                              <div className="text-xs font-bold text-ink-red-400 flex items-center gap-1 justify-end">
                                 <XCircle className="h-4 w-4" />
                                 <span>Exam Failed ({examAttempt.score}/100)</span>
                               </div>
-                              <span className="text-[10px] text-red-300/80">
+                              <span className="text-[10px] text-ink-red-300/80">
                                 Minimum 50/100 required to unlock Phase {phase.number + 1}
                               </span>
                               <button
@@ -596,17 +596,17 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
                               id={`locked-exam-${examAfterThisPhase.id}-btn`}
                               type="button"
                               disabled
-                              className="px-4 py-2.5 rounded-xl font-semibold text-xs bg-slate-800/80 text-slate-400 border border-slate-700/60 cursor-not-allowed flex items-center space-x-2 select-none opacity-80"
+                              className="px-4 py-2.5 rounded-xl font-semibold text-xs bg-slate-800/80 text-ink-slate-400 border border-slate-700/60 cursor-not-allowed flex items-center space-x-2 select-none opacity-80"
                               title={`Complete all ${examStatus.totalRequired} prerequisite units to unlock this examination.`}
                             >
-                              <Lock className="h-3.5 w-3.5 text-slate-400" />
+                              <Lock className="h-3.5 w-3.5 text-ink-slate-400" />
                               <span>Locked ({examStatus.completedCount}/{examStatus.totalRequired} Units)</span>
                             </button>
                             {examStatus.firstMissingUnit && (
                               <button
                                 type="button"
                                 onClick={() => onSelectUnit(examStatus.firstMissingUnit!.id)}
-                                className="text-xs text-blue-400 hover:text-blue-300 font-medium inline-flex items-center gap-1 transition-colors"
+                                className="text-xs text-ink-blue-400 hover:text-ink-blue-300 font-medium inline-flex items-center gap-1 transition-colors"
                               >
                                 <span>Continue Topic {examStatus.firstMissingUnit.weekNumber}</span>
                                 <ArrowRight className="h-3 w-3" />
@@ -626,11 +626,11 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
         {/* Course Progress Management Footer */}
         <div className="pt-10 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-center sm:text-left">
-            <h4 className="text-sm font-semibold text-slate-300 flex items-center justify-center sm:justify-start gap-1.5">
-              <RotateCcw className="h-4 w-4 text-slate-400" />
+            <h4 className="text-sm font-semibold text-ink-slate-300 flex items-center justify-center sm:justify-start gap-1.5">
+              <RotateCcw className="h-4 w-4 text-ink-slate-400" />
               <span>Learning Progress Management</span>
             </h4>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-ink-slate-500 mt-0.5">
               Need a fresh start? Reset your curriculum checklist, quiz results, and exam attempts back to Topic 1.
             </p>
           </div>
@@ -638,9 +638,9 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({
             id="footer-reset-progress-btn"
             type="button"
             onClick={onResetProgress}
-            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-red-300 bg-slate-900 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/40 transition-all shadow-sm"
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-ink-slate-300 hover:text-ink-red-300 bg-slate-900 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/40 transition-all shadow-sm"
           >
-            <RotateCcw className="h-3.5 w-3.5 text-slate-400 group-hover:text-red-400" />
+            <RotateCcw className="h-3.5 w-3.5 text-ink-slate-400 group-hover:text-ink-red-400" />
             <span>Reset Learning Progress</span>
           </button>
         </div>

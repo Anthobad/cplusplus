@@ -244,15 +244,15 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-ink-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
       {/* Toast Notification */}
       {toastMessage && (
         <div 
           id="global-status-toast"
           role="status"
-          className="fixed top-18 right-4 z-50 p-3.5 rounded-xl bg-emerald-950/90 border border-emerald-500/40 text-xs text-emerald-200 shadow-2xl flex items-center space-x-2.5 backdrop-blur-md animate-in slide-in-from-top-2 duration-200"
+          className="fixed top-18 right-4 z-50 p-3.5 rounded-xl bg-emerald-950/90 border border-emerald-500/40 text-xs text-ink-emerald-200 shadow-2xl flex items-center space-x-2.5 backdrop-blur-md animate-in slide-in-from-top-2 duration-200"
         >
-          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+          <CheckCircle2 className="h-4 w-4 text-ink-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}

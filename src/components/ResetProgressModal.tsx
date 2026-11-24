@@ -38,7 +38,7 @@ export const ResetProgressModal: React.FC<ResetProgressModalProps> = ({
   return (
     <div
       id="reset-progress-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isResetting) {
           onClose();
@@ -50,7 +50,7 @@ export const ResetProgressModal: React.FC<ResetProgressModalProps> = ({
         role="dialog"
         aria-labelledby="reset-modal-title"
         aria-modal="true"
-        className="relative w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden p-6 text-slate-100"
+        className="relative w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden p-6 text-ink-slate-100"
       >
         {/* Close Button */}
         <button
@@ -58,7 +58,7 @@ export const ResetProgressModal: React.FC<ResetProgressModalProps> = ({
           type="button"
           onClick={onClose}
           disabled={isResetting}
-          className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-40"
+          className="absolute top-4 right-4 p-1.5 text-ink-slate-400 hover:text-ink-strong rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-40"
           aria-label="Close dialog"
         >
           <X className="h-5 w-5" />
@@ -66,14 +66,14 @@ export const ResetProgressModal: React.FC<ResetProgressModalProps> = ({
 
         {/* Warning Icon & Heading */}
         <div className="flex items-start space-x-3.5 mb-5">
-          <div className="p-3 rounded-xl bg-red-600/20 border border-red-500/30 text-red-400 shrink-0">
+          <div className="p-3 rounded-xl bg-red-600/20 border border-red-500/30 text-ink-red-400 shrink-0">
             <ShieldAlert className="h-6 w-6" />
           </div>
           <div>
-            <h3 id="reset-modal-title" className="text-lg font-bold text-white">
+            <h3 id="reset-modal-title" className="text-lg font-bold text-ink-strong">
               Reset Learning Progress?
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-ink-slate-400 mt-0.5">
               This action resets your curriculum progress back to Topic 1.
             </p>
           </div>
@@ -81,26 +81,26 @@ export const ResetProgressModal: React.FC<ResetProgressModalProps> = ({
 
         {/* Current State Summary */}
         <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 mb-5 space-y-2 text-xs">
-          <div className="font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+          <div className="font-semibold text-ink-slate-300 mb-1 flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5 text-ink-amber-400" />
             <span>The following recorded progress will be cleared:</span>
           </div>
-          <div className="flex justify-between text-slate-400 py-1 border-b border-slate-900 font-mono">
+          <div className="flex justify-between text-ink-slate-400 py-1 border-b border-slate-900 font-mono">
             <span>Completed Units:</span>
-            <span className="font-bold text-slate-200">{completedCount} weeks</span>
+            <span className="font-bold text-ink-slate-200">{completedCount} weeks</span>
           </div>
-          <div className="flex justify-between text-slate-400 py-1 border-b border-slate-900 font-mono">
+          <div className="flex justify-between text-ink-slate-400 py-1 border-b border-slate-900 font-mono">
             <span>Quiz Results:</span>
-            <span className="font-bold text-slate-200">{quizzesCount} quizzes</span>
+            <span className="font-bold text-ink-slate-200">{quizzesCount} quizzes</span>
           </div>
-          <div className="flex justify-between text-slate-400 py-1 font-mono">
+          <div className="flex justify-between text-ink-slate-400 py-1 font-mono">
             <span>Milestone Exams:</span>
-            <span className="font-bold text-slate-200">{examsCount} exam attempts</span>
+            <span className="font-bold text-ink-slate-200">{examsCount} exam attempts</span>
           </div>
         </div>
 
-        <p className="text-xs text-slate-400 leading-relaxed mb-6">
-          Your active unit will be reset to <strong className="text-slate-200">Topic 1: C++ Evolution</strong>. This syncs with both your local browser storage and your connected cloud account.
+        <p className="text-xs text-ink-slate-400 leading-relaxed mb-6">
+          Your active unit will be reset to <strong className="text-ink-slate-200">Topic 1: C++ Evolution</strong>. This syncs with both your local browser storage and your connected cloud account.
         </p>
 
         {/* Action Buttons */}
@@ -110,7 +110,7 @@ export const ResetProgressModal: React.FC<ResetProgressModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={isResetting}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-medium text-xs transition-colors border border-slate-700 disabled:opacity-40"
+            className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-ink-slate-200 hover:text-ink-strong font-medium text-xs transition-colors border border-slate-700 disabled:opacity-40"
           >
             Cancel
           </button>

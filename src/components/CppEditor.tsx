@@ -1,7 +1,9 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { cppEditorExtensions, externalEditorUpdate } from '../lib/cppEditor';
+import { cppEditorAppearance, cppEditorExtensions, externalEditorUpdate } from '../lib/cppEditor';
+
+import { useTheme } from '../contexts/ThemeContext';
 
 export interface CppEditorProps {
   value: string;
@@ -12,6 +14,8 @@ export interface CppEditorProps {
   maxLength?: number;
 }
 export function CppEditor({ value, onChange, documentId, disabled = false, label = 'C++20 source', maxLength }: CppEditorProps) {
+  const { theme } = useTheme();
+  const appearanceConfig = useRef(new Compartment());
   const container = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView | null>(null);
   const current = useRef({ value, onChange, disabled, maxLength });
@@ -27,6 +31,7 @@ export function CppEditor({ value, onChange, documentId, disabled = false, label
       doc: current.current.value,
       extensions: [
         ...cppEditorExtensions(),
+        appearanceConfig.current.of(cppEditorAppearance(theme === 'dark')),
         wrapConfig.current.of(wrap ? EditorView.lineWrapping : []),
         editableConfig.current.of([EditorState.readOnly.of(current.current.disabled), EditorView.editable.of(!current.current.disabled)]),
         EditorView.contentAttributes.of({ 'aria-label': label, 'aria-describedby': helpId, 'aria-multiline': 'true', spellcheck: 'false' }),
@@ -63,8 +68,9 @@ export function CppEditor({ value, onChange, documentId, disabled = false, label
     editor.current?.dispatch({ effects: editableConfig.current.reconfigure([EditorState.readOnly.of(disabled), EditorView.editable.of(!disabled)]) });
   }, [disabled]);
   useEffect(() => { editor.current?.dispatch({ effects: wrapConfig.current.reconfigure(wrap ? EditorView.lineWrapping : []) }); }, [wrap]);
+  useEffect(() => { editor.current?.dispatch({ effects: appearanceConfig.current.reconfigure(cppEditorAppearance(theme === 'dark')) }); }, [theme]);
   return <div className="min-w-0">
-    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-900 text-xs text-slate-300 border-b border-slate-800">
+    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-900 text-xs text-ink-slate-300 border-b border-slate-800">
       <span>C++20 · 4 spaces</span>
       <label className="flex items-center gap-2"><input type="checkbox" checked={wrap} onChange={event => setWrap(event.target.checked)} />Word wrap</label>
       <details className="basis-full"><summary className="cursor-pointer">Keyboard shortcuts</summary>
@@ -79,7 +85,7 @@ export function CppEditor({ value, onChange, documentId, disabled = false, label
       </details>
     </div>
     <div ref={container} style={{ height: '20rem', minHeight: '12rem', maxHeight: '70vh', resize: 'vertical', overflow: 'hidden' }} />
-    <p id={helpId} className="px-3 py-1 text-[10px] text-slate-400">Select a name to highlight its matches. Press Escape, then Tab to leave the editor.</p>
-    {limitMessage && <p role="status" className="px-3 py-1 text-xs text-amber-300">{limitMessage}</p>}
+    <p id={helpId} className="px-3 py-1 text-[10px] text-ink-slate-400">Select a name to highlight its matches. Press Escape, then Tab to leave the editor.</p>
+    {limitMessage && <p role="status" className="px-3 py-1 text-xs text-ink-amber-300">{limitMessage}</p>}
   </div>;
 }

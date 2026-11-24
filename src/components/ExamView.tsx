@@ -12,18 +12,18 @@ type Props={exam:Exam;userId:string;onExitExam:()=>void;onOpenDocs:()=>void;prog
 /** Read-only highlighting: React escapes all source; no HTML interpretation. */
 export function ExamCode({code}:{code:string}){
  const tokens=code.split(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/[^\n]*|\b(?:int|auto|const|void|struct|class|return|if|else|for|while|virtual|override|noexcept|public|private|template|typename|delete|new|bool)\b)/g);
- return <pre className="p-4 overflow-x-auto bg-slate-950 rounded-lg text-xs font-mono whitespace-pre"><code>{tokens.map((token,i)=><span key={i} className={/^['"]/.test(token)?'text-emerald-300':token.startsWith('//')?'text-slate-500':/^[a-z]+$/.test(token)?'text-purple-300':'text-slate-200'}>{token}</span>)}</code></pre>;
+ return <pre className="p-4 overflow-x-auto bg-slate-950 rounded-lg text-xs font-mono whitespace-pre"><code>{tokens.map((token,i)=><span key={i} className={/^['"]/.test(token)?'text-ink-emerald-300':token.startsWith('//')?'text-ink-slate-500':/^[a-z]+$/.test(token)?'text-ink-purple-300':'text-ink-slate-200'}>{token}</span>)}</code></pre>;
 }
 export function ExamQuestionInput({question,answer,onChange,disabled}:{question:ExamQuestionDetail;answer:string;onChange:(value:string)=>void;disabled:boolean}){
  return <fieldset disabled={disabled} className="space-y-3 min-w-0">
-   <legend className="font-semibold text-white mb-3">{question.question}</legend>
+   <legend className="font-semibold text-ink-strong mb-3">{question.question}</legend>
    {question.codeSnippet&&<ExamCode code={question.codeSnippet}/>}
    {question.type==='mcq'?question.options?.map((text,i)=><label key={question.optionIds![i]} className="flex items-start gap-3 p-3 border border-slate-700 rounded-lg cursor-pointer has-[:checked]:border-blue-400">
      <input type="radio" name={question.id} value={question.optionIds![i]} checked={answer===question.optionIds![i]} onChange={()=>onChange(question.optionIds![i])}/><span>{text}</span>
    </label>):question.type==='fill_blank'?<label className="block">Blank 1
      <input aria-label="Blank 1" maxLength={200} value={answer} onChange={e=>onChange(e.target.value)} autoComplete="off" spellCheck={false} className="block w-full mt-2 p-3 bg-slate-950 border border-slate-700 rounded font-mono"/>
    </label>:question.type==='coding'?<div>
-     {question.codingInstructions&&<p className="text-xs text-slate-400 my-2">{question.codingInstructions}</p>}
+     {question.codingInstructions&&<p className="text-xs text-ink-slate-400 my-2">{question.codingInstructions}</p>}
      <CppEditor key={question.id} documentId={question.id} value={answer} onChange={onChange} disabled={disabled} maxLength={32000} />
    </div>:<label className="block">Predicted output
      <textarea aria-label="Predicted output" spellCheck={false} maxLength={4000} rows={5}
@@ -42,18 +42,18 @@ export function ExamResults({attempt}:{attempt:ExamAttempt}){
      return <article key={q.id} className="p-4 border border-slate-700 rounded-xl space-y-2">
        <h3 className="font-bold">{q.question}</h3>
        {row&&<p>{row.earned}/{row.possible} points — {row.earned===row.possible?'Correct':row.earned===0?'Incorrect / unanswered':'Partial credit'}</p>}
-       <p className="text-xs text-blue-300">Topics: {q.topicIds?.join(', ')||'Historical mapping'}</p>
+       <p className="text-xs text-ink-blue-300">Topics: {q.topicIds?.join(', ')||'Historical mapping'}</p>
        {answer!==undefined&&<div>Correct answer:<pre className="whitespace-pre-wrap font-mono">{String(answer)}</pre></div>}
-       <p className="text-sm text-slate-300">{q.explanation}</p>
+       <p className="text-sm text-ink-slate-300">{q.explanation}</p>
        {coding&&<div className="text-sm"><p>{coding.testsPassed}/{coding.totalTests} tests passed</p>
-         {coding.compileError&&<pre className="whitespace-pre-wrap text-red-300">{coding.compileError}</pre>}
-         {coding.runtimeError&&<pre className="whitespace-pre-wrap text-red-300">{coding.runtimeError}</pre>}
+         {coding.compileError&&<pre className="whitespace-pre-wrap text-ink-red-300">{coding.compileError}</pre>}
+         {coding.runtimeError&&<pre className="whitespace-pre-wrap text-ink-red-300">{coding.runtimeError}</pre>}
          <p>{coding.verified?'Verified compiler result':'Compiler-backed assessment result'}</p>
          <ul>{coding.testResults.filter(test=>!test.isHidden).map((test,i)=><li key={test.testId||i} className="my-2">
            Public test {i+1}: {test.passed?'Passed':'Failed'}
            <pre className="whitespace-pre-wrap">{test.error||test.actualOutput||''}</pre>
          </li>)}</ul></div>}
-       {attempt.explanationResults?.[q.id]&&<p className="text-sm text-slate-400">Historical feedback: {attempt.explanationResults[q.id].feedback}</p>}
+       {attempt.explanationResults?.[q.id]&&<p className="text-sm text-ink-slate-400">Historical feedback: {attempt.explanationResults[q.id].feedback}</p>}
      </article>;
    })}
  </section>;
@@ -108,7 +108,7 @@ export const ExamView:React.FC<Props>=({exam,userId,onExitExam,onOpenDocs,progre
  }
  const q=active?.questions[selected];
  const reviewTopics = progress && result ? calculateReadiness(progress).weakTopics.filter(topic=>result.generatedQuestions?.some(q=>q.topicIds?.includes(topic.unitId))) : [];
- return <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-5 text-slate-200">
+ return <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-5 text-ink-slate-200">
    <h1 className="text-2xl font-bold">{exam.title}</h1>
    <div className="flex flex-wrap gap-3 text-sm">
      <button onClick={onExitExam}>Return to Roadmap</button><button onClick={onOpenDocs}>C++ Reference</button>

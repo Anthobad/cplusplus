@@ -10,6 +10,8 @@ The roadmap also offers [Optional Interview Practice](docs/optional-interview-pr
 
 [Curriculum loading](docs/deferred-curriculum-loading.md) uses generated domain assets. Standard npm dev/build/test/lint commands generate them automatically; run `npm run generate:curriculum` before invoking tooling directly on a fresh checkout.
 
+Click your account name in the navbar and use the **Dark mode** switch to choose dark or light appearance. The preference is saved on this device, restored before the page paints and shared between open tabs. Lessons, exams, reference dialogs, readiness views and the C++ editor use the same theme; switching appearance preserves active code and editor history. Dark is the default. No sign-in or cloud settings are required for this preference.
+
 ---
 
 ## 🏛️ Curriculum Architecture (4 Knowledge Domains)
