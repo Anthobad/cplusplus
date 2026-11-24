@@ -66,12 +66,13 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --foreground-strong: #0f172a;
-  --color-slate-950: #fff;
-  --color-slate-900: #f8fafc;
-  --color-slate-800: #f1f5f9;
-  --color-slate-750: #e9eff5;
-  --color-slate-700: #e2e8f0;
-  --color-slate-600: #cbd5e1;
+  /* A soft gray canvas separates off-white cards from nested gray panels. */
+  --color-slate-950: #e7ecf2;
+  --color-slate-900: #fafbfc;
+  --color-slate-800: #eef2f6;
+  --color-slate-750: #e2e8f0;
+  --color-slate-700: #cbd5e1;
+  --color-slate-600: #aebed0;
   --foreground-amber-200: var(--color-amber-800);
   --foreground-amber-300: var(--color-amber-700);
   --foreground-amber-400: var(--color-amber-700);
