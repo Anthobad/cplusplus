@@ -1,3 +1,5 @@
+import { validateCodingContracts } from '../server/validateCodingContracts';
+import { INTERVIEW_PRACTICE } from '../src/data/interviewPractice';
 import { ACTIVE_EXAMS, ACTIVE_POOLS } from '../server/data/activeExams';
 import { EXAM_QUESTION_POOLS } from '../server/data/legacyQuestionPools';
 import { validateQuestionTopics } from '../src/data/examTopics';
@@ -14,6 +16,9 @@ validateQuestionTopics([...Object.values(EXAM_QUESTION_POOLS).flat(), ...CURRICU
 
 validateQuestionTopics([...Object.values(ACTIVE_POOLS).flat(), ...ACTIVE_EXAMS.flatMap(exam => exam.questions)],
   new Set(ALL_PHASES.flatMap(phase => phase.weeks.map(unit => unit.id))));
+validateCodingContracts(ALL_PHASES.flatMap(phase => phase.weeks),
+  [...Object.values(ACTIVE_POOLS).flat(), ...ACTIVE_EXAMS.flatMap(exam => exam.questions)],
+  INTERVIEW_PRACTICE.map(lesson => lesson.challenge));
 const directory = fileURLToPath(new URL('../src/generated/curriculum/', import.meta.url));
 mkdirSync(directory, { recursive: true });
 function emit(name: string, value: unknown) {

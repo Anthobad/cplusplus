@@ -248,3 +248,35 @@ The input `docs/remove-ai-dependency.md` was read without modification. Deleted 
 - Four moderate upstream tooling-chain advisories and the existing Vite large-chunk warning remain documented above.
 - Existing private AI environment variables, if any, were not changed; no code reads or requires them.
 - Temporary session retry outcomes remain available while that session record exists; durable history reviews survive session cleanup. No historical score is recreated or retroactively regraded after TTL deletion.
+
+## Coding contract correction — 24 November 2026
+
+The lesson-3 compiler failure was an authored-content/server-registration mismatch. Reordering the curriculum retained the original coding IDs, but the trusted registry had been keyed by the new topic positions. For example, topic 3 submits `cc-t4` (temperature conversion), while the old registry attached the bit-checking driver to that ID. **21 of 39 curriculum registrations were mismatched.** The unused-parameter warning in the unfinished starter was harmless; the unrelated driver caused the actual compilation error.
+
+Corrected all registrations by immutable challenge identity, preserving existing lesson/challenge IDs and history. Trusted curriculum data now lives in `server/curriculumChallengeRegistry.ts`; historical `cc-w*` aliases share their corresponding `cc-t*` record instead of duplicating independent drivers/tests. Exam and interview registrations remain intact.
+
+The complete compiler audit additionally found and corrected:
+
+- Trees (topic 25): the driver duplicated the student's `Node` definition. It now uses the supplied type, initializes child pointers, and constructs the complete tree described by its input contract. Additional private cases cover trees larger than three nodes.
+- Equality operators (topic 30): the starter omitted the callable operators. It now contains compilable TODO bodies; the driver checks consistency of equality and inequality.
+- Accumulator (topic 33): expected results wrongly assumed state survived between independent tests. Each case now has the correct fresh-process expectation, with a private multi-value case checking accumulation within one process.
+- Two-sum (topic 36): a private expected result rejected a valid pair. Corrected that result and retained a separate no-match case.
+
+`server/validateCodingContracts.ts` runs during the existing curriculum-generation step, hence before dev, lint, tests and builds. It rejects duplicate curriculum IDs, driver/public-test drift, broken aliases and missing exam/interview registrations before publishing generated content. It compares trusted authored files, never browser-submitted drivers.
+
+`tests/codingContracts.test.ts` adds **95 checks**: all **54 distinct starters** (39 curriculum, 10 exam contracts, 5 interview) compile against their actual trusted harness, all 39 curriculum references pass every public/hidden case, and metadata drift/duplicate IDs are rejected. Existing exam/interview tests separately compile their reference solutions against all public/hidden cases. These are actual C++20 compiler tests, not signature-name regex checks. Starter stubs need not pass tests before the learner implements them.
+
+Final verification: **375 tests across 26 files passed**, TypeScript checking passed, production build and bundle guards passed, and `git diff --check` passed. The existing Vite large-chunk warning remains. Compiler checks used the local regression runner; no cloud benchmark or production submission was performed for this correction. Authentication, grading policy, Firebase records/rules, sandbox isolation and compiler snapshot settings were not changed. Existing history was not retroactively rescored.
+
+Changed files for this correction:
+
+- `server/challengeRegistry.ts`
+- `server/curriculumChallengeRegistry.ts`
+- `server/validateCodingContracts.ts`
+- `scripts/generate-curriculum-assets.ts`
+- `src/data/domain2_datastructures.ts`
+- `src/data/domain3_oop.ts`
+- `tests/codingContracts.test.ts`
+- `docs/deterministic-assessment-migration.md`
+
+No deployment was performed. Redeploy the backend/frontend together and refresh old browser tabs to receive the corrected registrations and starters. Continue running the complete compiler regression suite before release; build-time metadata checks alone do not prove arbitrary C++ behavior correct.

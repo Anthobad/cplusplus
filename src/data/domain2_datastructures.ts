@@ -1023,22 +1023,25 @@ int maxDepth(Node* root) {
     if (!root) return 0;
     return 1 + std::max(maxDepth(root->left), maxDepth(root->right));
 }`,
-        expectedBehavior: "Compute and return maximum height/depth of binary tree.",
+        expectedBehavior: "Compute the maximum depth of the supplied Node tree. The driver constructs a complete binary tree with the input number of nodes; Node is defined in your submission.",
         hints: ["If root is null return 0; else return 1 + max(left, right)"],
         testCases: [
           { input: "3", expectedOutput: "2" },
           { input: "1", expectedOutput: "1" }
         ],
         driverCode: `#include <iostream>
-struct Node { int val; Node* left = nullptr; Node* right = nullptr; };
+#include <vector>
 int main() {
     int count;
     if (std::cin >> count) {
-        if (count == 0) { std::cout << "0\\n"; return 0; }
-        Node* root = new Node{1};
-        if (count > 1) root->left = new Node{2};
-        if (count > 2) root->right = new Node{3};
-        std::cout << maxDepth(root) << "\\n";
+        if (count <= 0) { std::cout << "0\\n"; return 0; }
+        std::vector<Node> nodes(count);
+        for (int i = 0; i < count; ++i) nodes[i] = Node{i + 1, nullptr, nullptr};
+        for (int i = 0; i < count; ++i) {
+            if (2 * i + 1 < count) nodes[i].left = &nodes[2 * i + 1];
+            if (2 * i + 2 < count) nodes[i].right = &nodes[2 * i + 2];
+        }
+        std::cout << maxDepth(&nodes[0]) << "\\n";
     }
     return 0;
 }`

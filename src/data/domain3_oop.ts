@@ -362,7 +362,7 @@ export const DOMAIN_3_UNITS: Unit[] = [
         "id": "cc-t32",
         "title": "2D Vector Equality Operator",
         "difficulty": "Easy",
-        "initialCode": "struct Vec2 {\n    int x, y;\n    // Implement operator== and operator!=\n};",
+        "initialCode": "struct Vec2 {\n    int x, y;\n    bool operator==(const Vec2& other) const {\n        // Compare both coordinates.\n        return false;\n    }\n    bool operator!=(const Vec2& other) const {\n        // Return true when the vectors are different.\n        return false;\n    }\n};",
         "solutionCode": "struct Vec2 {\n    int x, y;\n    bool operator==(const Vec2& other) const {\n        return x == other.x && y == other.y;\n    }\n    bool operator!=(const Vec2& other) const {\n        return !(*this == other);\n    }\n};",
         "expectedBehavior": "Implement equality operators for Vec2.",
         "hints": [
@@ -378,7 +378,7 @@ export const DOMAIN_3_UNITS: Unit[] = [
             "expectedOutput": "not_equal"
           }
         ],
-        "driverCode": "#include <iostream>\nint main() {\n    int x1, y1, x2, y2;\n    if (std::cin >> x1 >> y1 >> x2 >> y2) {\n        Vec2 a{x1, y1}, b{x2, y2};\n        std::cout << (a == b ? \"equal\" : \"not_equal\") << \"\\n\";\n    }\n    return 0;\n}"
+        "driverCode": "#include <iostream>\nint main() {\n    int x1, y1, x2, y2;\n    if (std::cin >> x1 >> y1 >> x2 >> y2) {\n        Vec2 a{x1, y1}, b{x2, y2};\n        const bool equal = (a == b);\n        const bool different = (a != b);\n        std::cout << (equal == different ? \"inconsistent\" : equal ? \"equal\" : \"not_equal\") << \"\\n\";\n    }\n    return 0;\n}"
       }
     },
     "quiz": {
@@ -767,7 +767,7 @@ export const DOMAIN_3_UNITS: Unit[] = [
           },
           {
             "input": "25",
-            "expectedOutput": "35"
+            "expectedOutput": "25"
           }
         ],
         "driverCode": "#include <iostream>\nint main() {\n    int v;\n    while (std::cin >> v) {\n        safeAddToAccumulator(v);\n        std::cout << globalAccumulator << \"\\n\";\n    }\n    return 0;\n}"
